@@ -1,6 +1,6 @@
 import type { Highlight, HighlightCreateInput } from '@/shared/types/highlight';
 
-const HIGHLIGHTS_STORAGE_KEY = 'highlights';
+export const HIGHLIGHTS_STORAGE_KEY = 'highlights';
 
 function createHighlight(input: HighlightCreateInput): Highlight {
   return {

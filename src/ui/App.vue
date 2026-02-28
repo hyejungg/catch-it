@@ -1,6 +1,10 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
-import { deleteHighlight, getHighlights } from '@/shared/storage/highlight-storage';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
+import {
+  HIGHLIGHTS_STORAGE_KEY,
+  deleteHighlight,
+  getHighlights
+} from '@/shared/storage/highlight-storage';
 import { searchHighlights, sortHighlightsByCreatedAt } from '@/shared/storage/highlight-selectors';
 import { getSettings, saveSettings } from '@/shared/storage/settings-storage';
 import type { Highlight } from '@/shared/types/highlight';
@@ -10,6 +14,16 @@ const searchQuery = ref('');
 const highlights = ref<Highlight[]>([]);
 const currentView = ref<'dashboard' | 'settings'>('dashboard');
 const settings = ref<AppSettings>({ ...DEFAULT_APP_SETTINGS });
+const onStorageChanged = (
+  changes: Record<string, chrome.storage.StorageChange>,
+  areaName: string
+): void => {
+  if (areaName !== 'local' || !changes[HIGHLIGHTS_STORAGE_KEY]) {
+    return;
+  }
+
+  void loadHighlights();
+};
 const mockHighlights: Highlight[] = [
   {
     id: 'sample-1',
@@ -112,6 +126,20 @@ function removeHighlight(id: string): void {
 onMounted(() => {
   void loadHighlights();
   void loadSettings();
+
+  if (!canUseChromeStorage()) {
+    return;
+  }
+
+  chrome.storage.onChanged.addListener(onStorageChanged);
+});
+
+onUnmounted(() => {
+  if (!canUseChromeStorage()) {
+    return;
+  }
+
+  chrome.storage.onChanged.removeListener(onStorageChanged);
 });
 </script>
 
