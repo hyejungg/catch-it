@@ -33,7 +33,7 @@
 - `autoSync`, `requireAlt` 토글이 저장/재진입 후 유지된다.
 - 타이틀 구조가 요구사항과 일치한다.
   - 메인 타이틀: `CatchIt - 웹 텍스트 수집기`
-  - 서브 타이틀: `Dashboard` / `Settings`
+  - 서브 타이틀: `Dashboards` / `Settings`
 
 ### 4) Notion 동기화
 - `autoSync` ON 상태에서 저장 시 Notion 페이지가 생성된다.

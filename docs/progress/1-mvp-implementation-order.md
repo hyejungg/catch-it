@@ -174,6 +174,6 @@
 ## 추가 요청 사항(다음 진행 전 반영)
 - 완료:
   - 확장 아이콘 클릭 시 Side Panel 기본 오픈 동작 적용
-  - 헤더 타이틀 구조를 `CatchIt - 웹 텍스트 수집기` + `Dashboard/Settings`로 통일
+  - 헤더 타이틀 구조를 `CatchIt - 웹 텍스트 수집기` + `Dashboards/Settings`로 통일
   - Settings에 `연동 확인(Test Connection)` 버튼 추가 및 상태 메시지 표시
   - `Notion DB 바로가기(Open Notion)` 버튼 추가

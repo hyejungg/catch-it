@@ -200,7 +200,9 @@ onUnmounted(() => {
         <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-rose-100 text-rose-500">C</div>
         <div>
           <h1 class="text-base font-semibold text-slate-800">CatchIt - 웹 텍스트 수집기</h1>
-          <p class="text-xs text-slate-500">{{ currentView === 'dashboard' ? 'Dashboard' : 'Settings' }}</p>
+          <p class="text-xs text-slate-500">
+            {{ currentView === 'dashboard' ? 'Dashboards' : 'Settings' }}
+          </p>
         </div>
       </div>
       <button
