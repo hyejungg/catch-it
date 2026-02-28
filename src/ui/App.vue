@@ -146,10 +146,20 @@ onUnmounted(() => {
 <template>
   <main class="min-h-screen bg-slate-50 p-4 text-slate-800">
     <header class="mb-4 flex items-center justify-between rounded-lg bg-white p-3 shadow-sm">
-      <h1 class="text-lg font-semibold">CatchIt {{ currentView === 'dashboard' ? 'Dashboard' : 'Settings' }}</h1>
+      <div class="flex items-center gap-2">
+        <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-rose-100 text-rose-500">C</div>
+        <h1 class="text-lg font-semibold">
+          CatchIt {{ currentView === 'dashboard' ? 'Dashboard' : 'Settings' }}
+        </h1>
+      </div>
       <button
         type="button"
-        class="rounded border border-slate-200 px-2 py-1 text-xs text-slate-700 hover:bg-slate-100"
+        :class="
+          currentView === 'settings'
+            ? 'bg-rose-50 text-rose-600'
+            : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700'
+        "
+        class="rounded-md p-1.5 text-xs transition-colors"
         @click="toggleView"
       >
         {{ currentView === 'dashboard' ? '설정' : '대시보드' }}
@@ -162,16 +172,18 @@ onUnmounted(() => {
           v-model="searchQuery"
           type="text"
           placeholder="저장된 텍스트 검색..."
-          class="w-full rounded-md border border-slate-200 px-3 py-2 text-sm outline-none transition focus:border-brand-600"
+          class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-transparent focus:ring-2 focus:ring-rose-500"
         />
       </section>
 
       <section class="rounded-lg bg-white p-3 shadow-sm">
         <div class="mb-3 flex items-center justify-between">
-          <p class="text-xs text-slate-500">최근 저장된 항목 {{ filteredHighlights.length }}개</p>
+          <p class="text-xs text-slate-500">
+            최근 저장된 항목 <span class="ml-1 text-rose-500">{{ filteredHighlights.length }}</span>
+          </p>
           <button
             type="button"
-            class="rounded border border-slate-200 px-2 py-1 text-xs text-slate-600 hover:bg-slate-100"
+            class="rounded px-2 py-1 text-xs font-medium text-rose-500 hover:bg-rose-50"
           >
             Sync Now
           </button>
@@ -195,7 +207,7 @@ onUnmounted(() => {
               <span
                 v-for="tag in item.tags"
                 :key="tag"
-                class="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-600"
+                class="rounded-full border border-rose-100 bg-rose-50 px-2 py-0.5 text-[10px] text-rose-600"
               >
                 #{{ tag }}
               </span>
@@ -220,7 +232,7 @@ onUnmounted(() => {
             <div class="mt-3 flex gap-2">
               <button
                 type="button"
-                class="rounded border border-slate-200 px-2 py-1 text-xs text-slate-700 hover:bg-slate-100"
+                class="rounded border border-slate-200 px-2 py-1 text-xs text-slate-700 hover:bg-rose-50 hover:text-rose-600"
                 @click="copyHighlight(item)"
               >
                 복사
@@ -253,7 +265,7 @@ onUnmounted(() => {
           :value="settings.notionToken"
           type="password"
           placeholder="secret_..."
-          class="mb-3 w-full rounded-md border border-slate-200 px-3 py-2 text-sm outline-none transition focus:border-brand-600"
+          class="mb-3 w-full rounded-md border border-slate-200 px-3 py-2 text-sm outline-none transition focus:border-rose-500 focus:ring-1 focus:ring-rose-500"
           @input="updateSettings('notionToken', ($event.target as HTMLInputElement).value)"
         />
 
@@ -262,7 +274,7 @@ onUnmounted(() => {
           :value="settings.notionDbId"
           type="text"
           placeholder="database id"
-          class="w-full rounded-md border border-slate-200 px-3 py-2 text-sm outline-none transition focus:border-brand-600"
+          class="w-full rounded-md border border-slate-200 px-3 py-2 text-sm outline-none transition focus:border-rose-500 focus:ring-1 focus:ring-rose-500"
           @input="updateSettings('notionDbId', ($event.target as HTMLInputElement).value)"
         />
       </div>
@@ -272,20 +284,32 @@ onUnmounted(() => {
 
         <label class="mb-2 flex items-center justify-between text-sm text-slate-700">
           <span>자동 동기화 (Auto Sync)</span>
-          <input
-            :checked="settings.autoSync"
-            type="checkbox"
-            @change="updateSettings('autoSync', ($event.target as HTMLInputElement).checked)"
-          />
+          <button
+            type="button"
+            :class="settings.autoSync ? 'bg-rose-500' : 'bg-slate-200'"
+            class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none"
+            @click="updateSettings('autoSync', !settings.autoSync)"
+          >
+            <span
+              :class="settings.autoSync ? 'translate-x-5' : 'translate-x-1'"
+              class="inline-block h-3 w-3 transform rounded-full bg-white shadow-sm transition-transform"
+            />
+          </button>
         </label>
 
         <label class="flex items-center justify-between text-sm text-slate-700">
           <span>Alt + Drag에서만 팝오버 표시</span>
-          <input
-            :checked="settings.requireAlt"
-            type="checkbox"
-            @change="updateSettings('requireAlt', ($event.target as HTMLInputElement).checked)"
-          />
+          <button
+            type="button"
+            :class="settings.requireAlt ? 'bg-rose-500' : 'bg-slate-200'"
+            class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none"
+            @click="updateSettings('requireAlt', !settings.requireAlt)"
+          >
+            <span
+              :class="settings.requireAlt ? 'translate-x-5' : 'translate-x-1'"
+              class="inline-block h-3 w-3 transform rounded-full bg-white shadow-sm transition-transform"
+            />
+          </button>
         </label>
       </div>
     </section>

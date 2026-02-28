@@ -48,7 +48,7 @@ function createPopover(x: number, y: number): HTMLDivElement {
   saveButton.type = 'button';
   saveButton.textContent = '저장';
   saveButton.style.border = 'none';
-  saveButton.style.background = '#4f46e5';
+  saveButton.style.background = '#f43f5e';
   saveButton.style.color = '#ffffff';
   saveButton.style.padding = '6px 10px';
   saveButton.style.borderRadius = '8px';
