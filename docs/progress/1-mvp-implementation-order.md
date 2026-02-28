@@ -45,6 +45,10 @@
   - `requireAlt` 설정 기반 팝오버 표시 제어
   - 선택 영역 근처 팝오버 UI(저장/취소) 구현
   - 저장 클릭 시 `HIGHLIGHT_SAVE_REQUEST` 메시지 전송 연결
+- Background 저장 파이프라인 반영:
+  - `HIGHLIGHT_SAVE_REQUEST` 메시지 타입 가드 및 수신 처리 구현
+  - background에서 highlight 생성/저장 처리(`addHighlight`) 연결
+  - dashboard에서 `chrome.storage.onChanged` 구독으로 저장 즉시 목록 갱신
 
 ## 상태(Status)
 - `in-progress`
@@ -124,7 +128,7 @@
   - 저장 결과를 UI가 즉시 반영하도록 이벤트/재조회 전략 수립
 - 완료 기준:
   - 드래그 저장 시 Dashboard 목록에서 즉시 확인 가능
-- 상태: `todo`
+- 상태: `done`
 
 ### 7) Notion Push Sync (SHOULD)
 - 작업:
@@ -146,5 +150,5 @@
 - 상태: `todo`
 
 ## 다음(Next)
-- 1순위 실행: `6) Background 저장 파이프라인`
-- 이후: `7) Notion Push Sync (SHOULD)`
+- 1순위 실행: `7) Notion Push Sync (SHOULD)`
+- 이후: `8) 품질/마감`
