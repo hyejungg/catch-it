@@ -40,6 +40,11 @@
   - Dashboard/Settings 뷰 전환 추가
   - `AppSettings` 타입 및 settings storage(`get/save`) 유틸 추가
   - `requireAlt`, `autoSync`, `notionToken`, `notionDbId` 입력/토글 저장 연결
+- Content Script 진행 반영:
+  - 텍스트 선택 감지 및 최소 길이 조건 처리
+  - `requireAlt` 설정 기반 팝오버 표시 제어
+  - 선택 영역 근처 팝오버 UI(저장/취소) 구현
+  - 저장 클릭 시 `HIGHLIGHT_SAVE_REQUEST` 메시지 전송 연결
 
 ## 상태(Status)
 - `in-progress`
@@ -110,7 +115,7 @@
   - `requireAlt` 설정 반영
 - 완료 기준:
   - FR-1~FR-3 기본 저장 트리거 가능
-- 상태: `todo`
+- 상태: `done`
 
 ### 6) Background 저장 파이프라인
 - 작업:
@@ -141,5 +146,5 @@
 - 상태: `todo`
 
 ## 다음(Next)
-- 1순위 실행: `5) Content Script 드래그 감지 + 팝오버`
-- 이후: `6) Background 저장 파이프라인`
+- 1순위 실행: `6) Background 저장 파이프라인`
+- 이후: `7) Notion Push Sync (SHOULD)`
