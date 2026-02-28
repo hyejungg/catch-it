@@ -1,5 +1,6 @@
 const POPOVER_ID = 'catchit-selection-popover';
 const STYLE_ID = 'catchit-selection-style';
+const PERSISTENT_HIGHLIGHT_NAME = 'catchit-selection';
 const MIN_SELECTION_LENGTH = 3;
 const SETTINGS_STORAGE_KEY = 'settings';
 
@@ -51,7 +52,7 @@ function removePopoverElement(): void {
 
 function removePopover(): void {
   removePopoverElement();
-  currentSelectionRange = null;
+  clearPersistentSelectionHighlight();
 }
 
 function clearSelection(): void {
@@ -82,18 +83,37 @@ function ensureSelectionStyle(): void {
   document.documentElement.appendChild(style);
 }
 
-function restoreSelectionRange(): void {
-  if (!currentSelectionRange) {
+function setPersistentSelectionHighlight(range: Range): void {
+  currentSelectionRange = range.cloneRange();
+
+  const cssAny = CSS as unknown as {
+    highlights?: {
+      set: (name: string, highlight: unknown) => void;
+    };
+  };
+  const highlightCtor = (globalThis as unknown as { Highlight?: new (range: Range) => unknown })
+    .Highlight;
+
+  if (!cssAny.highlights || !highlightCtor) {
     return;
   }
 
-  const selection = window.getSelection();
-  if (!selection) {
+  cssAny.highlights.set(PERSISTENT_HIGHLIGHT_NAME, new highlightCtor(currentSelectionRange));
+}
+
+function clearPersistentSelectionHighlight(): void {
+  currentSelectionRange = null;
+
+  const cssAny = CSS as unknown as {
+    highlights?: {
+      delete: (name: string) => void;
+    };
+  };
+  if (!cssAny.highlights) {
     return;
   }
 
-  selection.removeAllRanges();
-  selection.addRange(currentSelectionRange.cloneRange());
+  cssAny.highlights.delete(PERSISTENT_HIGHLIGHT_NAME);
 }
 
 function createPopover(x: number, y: number): HTMLDivElement {
@@ -183,24 +203,6 @@ function createPopover(x: number, y: number): HTMLDivElement {
   popover.addEventListener('mousedown', (event) => {
     event.stopPropagation();
   });
-  tagInput.addEventListener('mousedown', (event) => {
-    event.preventDefault();
-    event.stopPropagation();
-    tagInput.focus();
-    const caretPosition = tagInput.value.length;
-    tagInput.setSelectionRange(caretPosition, caretPosition);
-    restoreSelectionRange();
-  });
-  tagInput.addEventListener('focus', () => {
-    restoreSelectionRange();
-  });
-  tagInput.addEventListener('input', () => {
-    restoreSelectionRange();
-  });
-  saveButton.addEventListener('mousedown', (event) => {
-    event.preventDefault();
-    event.stopPropagation();
-  });
 
   popover.appendChild(title);
   popover.appendChild(tagInput);
@@ -244,7 +246,8 @@ async function handleMouseUp(event: MouseEvent): Promise<void> {
     }
 
     currentSelectionText = text;
-    currentSelectionRange = range.cloneRange();
+    setPersistentSelectionHighlight(range);
+    clearSelection();
     createPopover(rect.left + rect.width / 2, rect.top);
   } catch (error) {
     console.debug('[CatchIt] handleMouseUp failed:', error);

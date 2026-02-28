@@ -1,6 +1,6 @@
 import { DEFAULT_APP_SETTINGS, type AppSettings } from '@/shared/types/settings';
 
-const SETTINGS_STORAGE_KEY = 'settings';
+export const SETTINGS_STORAGE_KEY = 'settings';
 
 export async function getSettings(): Promise<AppSettings> {
   const data = await chrome.storage.local.get(SETTINGS_STORAGE_KEY);

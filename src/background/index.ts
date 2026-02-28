@@ -2,9 +2,10 @@ import {
   addHighlight,
   getHighlights,
   getHighlightById,
+  saveHighlights,
   updateHighlight
 } from '@/shared/storage/highlight-storage';
-import { getSettings } from '@/shared/storage/settings-storage';
+import { getSettings, SETTINGS_STORAGE_KEY } from '@/shared/storage/settings-storage';
 import { normalizeNotionSyncStatus, type Highlight } from '@/shared/types/highlight';
 import type {
   SaveHighlightRequestMessage,
@@ -87,6 +88,13 @@ interface NotionDatabaseInfo {
   properties: Record<string, NotionDatabaseProperty>;
 }
 
+interface NotionQueryResponse {
+  results: Array<{ id?: string }>;
+  has_more?: boolean;
+  next_cursor?: string | null;
+  message?: string;
+}
+
 function normalizeNotionId(value: string): string {
   return value.trim().replaceAll('-', '');
 }
@@ -119,6 +127,56 @@ async function getNotionDatabaseInfo(
   }
 
   return parsed;
+}
+
+async function queryNotionDatabasePageIds(
+  notionToken: string,
+  notionDbId: string
+): Promise<Set<string>> {
+  const pageIds = new Set<string>();
+  let nextCursor: string | null = null;
+  let hasMore = true;
+
+  while (hasMore) {
+    const body = nextCursor ? { page_size: 100, start_cursor: nextCursor } : { page_size: 100 };
+    const response = await fetch(
+      `https://api.notion.com/v1/databases/${normalizeNotionId(notionDbId)}/query`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${notionToken}`,
+          'Notion-Version': '2022-06-28',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(body)
+      }
+    );
+
+    const raw = await response.text();
+    let parsed: NotionQueryResponse = { results: [] };
+    if (raw) {
+      try {
+        parsed = JSON.parse(raw) as NotionQueryResponse;
+      } catch {
+        parsed = { results: [] };
+      }
+    }
+
+    if (!response.ok) {
+      throw new Error(mapNotionError(response.status, parsed.message ?? 'Notion DB 조회 실패'));
+    }
+
+    for (const item of parsed.results ?? []) {
+      if (item.id) {
+        pageIds.add(item.id.replaceAll('-', ''));
+      }
+    }
+
+    hasMore = Boolean(parsed.has_more);
+    nextCursor = parsed.next_cursor ?? null;
+  }
+
+  return pageIds;
 }
 
 function findPropertyNameByType(
@@ -320,6 +378,66 @@ async function syncNow(): Promise<SyncNowResult> {
   return result;
 }
 
+async function resetAllHighlightsReadyOnDbChange(): Promise<number> {
+  const highlights = await getHighlights();
+  if (highlights.length === 0) {
+    return 0;
+  }
+
+  const next = highlights.map((highlight) => ({
+    ...highlight,
+    notion: {
+      status: 'ready' as const
+    }
+  }));
+  await saveHighlights(next);
+  return next.length;
+}
+
+async function reconcileHighlightSyncStatesByDatabase(
+  notionToken: string,
+  notionDbId: string
+): Promise<{ total: number; sync: number; ready: number }> {
+  const highlights = await getHighlights();
+  if (highlights.length === 0) {
+    return { total: 0, sync: 0, ready: 0 };
+  }
+
+  const pageIds = await queryNotionDatabasePageIds(notionToken, notionDbId);
+  let syncCount = 0;
+  let readyCount = 0;
+
+  const next = highlights.map((highlight) => {
+    const pageId = highlight.notion?.pageId?.replaceAll('-', '') ?? '';
+    if (pageId && pageIds.has(pageId)) {
+      syncCount += 1;
+      return {
+        ...highlight,
+        notion: {
+          ...highlight.notion,
+          status: 'sync' as const,
+          error: undefined
+        }
+      };
+    }
+
+    readyCount += 1;
+    return {
+      ...highlight,
+      notion: {
+        status: 'ready' as const
+      }
+    };
+  });
+
+  await saveHighlights(next);
+  return {
+    total: next.length,
+    sync: syncCount,
+    ready: readyCount
+  };
+}
+
 async function testNotionConnection(): Promise<{ ok: boolean; message: string }> {
   const settings = await getSettings();
   if (!settings.notionToken || !settings.notionDbId) {
@@ -363,9 +481,15 @@ async function testNotionConnection(): Promise<{ ok: boolean; message: string }>
     };
   }
 
+  const reconciled = await reconcileHighlightSyncStatesByDatabase(
+    settings.notionToken,
+    settings.notionDbId
+  );
+  logSync('Notion connection reconcile finished', reconciled);
+
   return {
     ok: true,
-    message: 'Notion 연동 확인 성공'
+    message: `Notion 연동 확인 성공 (sync ${reconciled.sync} / ready ${reconciled.ready})`
   };
 }
 
@@ -380,6 +504,41 @@ chrome.runtime.onStartup.addListener(() => {
   if (chrome.sidePanel?.setPanelBehavior) {
     void chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
   }
+});
+
+chrome.storage.onChanged.addListener((changes, areaName) => {
+  if (areaName !== 'local') {
+    return;
+  }
+
+  const settingsChange = changes[SETTINGS_STORAGE_KEY];
+  if (!settingsChange) {
+    return;
+  }
+
+  const oldDbId = normalizeNotionId(
+    (settingsChange.oldValue as { notionDbId?: string } | undefined)?.notionDbId ?? ''
+  );
+  const newDbId = normalizeNotionId(
+    (settingsChange.newValue as { notionDbId?: string } | undefined)?.notionDbId ?? ''
+  );
+
+  if (!oldDbId || !newDbId || oldDbId === newDbId) {
+    return;
+  }
+
+  void (async () => {
+    try {
+      const resetCount = await resetAllHighlightsReadyOnDbChange();
+      logSync('Database ID changed: reset highlight statuses to ready', {
+        oldDbId: maskIdentifier(oldDbId),
+        newDbId: maskIdentifier(newDbId),
+        resetCount
+      });
+    } catch (error) {
+      console.error('[CatchIt] failed to reset statuses after db change:', error);
+    }
+  })();
 });
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
