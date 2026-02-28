@@ -36,6 +36,10 @@
   - 검색 로직을 공통 selector(`searchHighlights`)로 통합
   - 삭제 액션 시 storage 반영 후 목록 재조회 처리
   - dev 서버 환경(`chrome.storage` 미지원)용 mock fallback 유지
+- Settings 화면 진행 반영:
+  - Dashboard/Settings 뷰 전환 추가
+  - `AppSettings` 타입 및 settings storage(`get/save`) 유틸 추가
+  - `requireAlt`, `autoSync`, `notionToken`, `notionDbId` 입력/토글 저장 연결
 
 ## 상태(Status)
 - `in-progress`
@@ -97,7 +101,7 @@
   - 기초 유효성(빈 값, 형식) 처리
 - 완료 기준:
   - 설정 변경 후 재진입 시 값 유지
-- 상태: `todo`
+- 상태: `done`
 
 ### 5) Content Script 드래그 감지 + 팝오버
 - 작업:
@@ -137,5 +141,5 @@
 - 상태: `todo`
 
 ## 다음(Next)
-- 1순위 실행: `4) Settings 화면(일반 설정 + Notion 입력 UI)`
-- 이후: `5) Content Script 드래그 감지 + 팝오버`
+- 1순위 실행: `5) Content Script 드래그 감지 + 팝오버`
+- 이후: `6) Background 저장 파이프라인`
