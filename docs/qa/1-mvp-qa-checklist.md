@@ -24,10 +24,16 @@
 - 복사 버튼이 텍스트를 클립보드에 복사한다.
 - 원문 열기 버튼이 새 탭으로 URL을 연다.
 - 삭제 버튼이 항목을 제거하고 목록에 즉시 반영된다.
+- 확장 아이콘으로 열리는 UI 폭이 충분해 주요 컨텐츠가 잘리지 않는다.
+  - Side Panel 모드 사용 시: 기본 진입이 side panel에서 동작한다.
+  - Popup 모드 유지 시: 텍스트/버튼/상태 배지가 겹치지 않는다.
 
 ### 3) Settings 저장
 - `notionToken`, `notionDbId` 입력값이 저장/재진입 후 유지된다.
 - `autoSync`, `requireAlt` 토글이 저장/재진입 후 유지된다.
+- 타이틀 구조가 요구사항과 일치한다.
+  - 메인 타이틀: `CatchIt - 웹 텍스트 수집기`
+  - 서브 타이틀: `Dashboard` / `Settings`
 
 ### 4) Notion 동기화
 - `autoSync` ON 상태에서 저장 시 Notion 페이지가 생성된다.
