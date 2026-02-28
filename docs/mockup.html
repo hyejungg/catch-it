@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CatchIt - 웹 텍스트 노션 동기화 및 수집기</title>
+    
+    <!-- Google Fonts: Inter 적용 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        // Tailwind의 기본 rose, slate, emerald, red 등을 사용 (PRD 스펙 완벽 일치)
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Vue 3 -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    
+    <style>
+        body { margin: 0; padding: 0; overflow: hidden; background-color: #e2e8f0; }
+        /* 스크롤바 디자인 (Minimal) */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        /* 텍스트 드래그 시 색상 변경 (기본 선택 영역) */
+        ::selection { background-color: #ffe4e6; color: #e11d48; }
+        
+        /* 커스텀 하이라이트 (태그 입력 중 선택 유지용) */
+        ::highlight(catchit-hl) { background-color: #ffe4e6; color: #e11d48; }
+    </style>
+</head>
+<body class="font-sans text-slate-800 h-screen flex">
+    <div id="app" class="flex w-full h-full">
+        
+        <!-- ========================================== -->
+        <!-- 1. 가상 웹 페이지 영역 (좌측) -->
+        <!-- ========================================== -->
+        <div class="flex-1 bg-white relative overflow-y-auto" @mouseup="handleSelection" @mousedown="hidePopover">
+            <!-- 가상의 브라우저 헤더 -->
+            <div class="bg-slate-100 border-b border-slate-200 px-4 py-3 flex items-center gap-2 sticky top-0 z-10">
+                <div class="w-3 h-3 rounded-full bg-red-400"></div>
+                <div class="w-3 h-3 rounded-full bg-yellow-400"></div>
+                <div class="w-3 h-3 rounded-full bg-green-400"></div>
+                <div class="ml-4 bg-white rounded-md px-3 py-1 text-sm text-slate-500 border border-slate-200 flex-1 shadow-sm flex items-center">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4"></path></svg>
+                    https://example.com/blog/future-of-ai
+                </div>
+            </div>
+
+            <!-- 가상 아티클 콘텐츠 -->
+            <div class="max-w-2xl mx-auto py-12 px-8">
+                <h1 class="text-3xl font-bold mb-6 text-slate-900">왜 우리는 항상 정보를 잃어버릴까?</h1>
+                <p class="text-slate-500 text-sm mb-8">2023. 10. 25 | 작성자: 테크 매거진</p>
+                
+                <div class="space-y-6 text-lg leading-relaxed text-slate-700 cursor-text">
+                    <p>현대인들은 하루에도 수백 개의 아티클과 마주칩니다. 하지만 <span class="bg-yellow-100">정말 중요한 문장을 발견하더라도 그것을 내 지식으로 만드는 과정은 너무나도 험난합니다.</span> 북마크는 쌓여만 가고 다시 열어보지 않게 되죠.</p>
+                    
+                    <p>단순한 메모 앱에 복사해서 붙여넣기를 하더라도 문제는 발생합니다. 가장 큰 문제는 <strong>"현재 페이지 컨텍스트(링크, 제목, 문맥)가 빠져 재사용성이 떨어진다"</strong>는 점입니다. 몇 달 뒤 메모장을 열어보면 '내가 이걸 왜 적어놨지?'라는 생각부터 들게 됩니다.</p>
+
+                    <p>우리에겐 더 나은 도구가 필요합니다. <span class="text-rose-600 font-medium">드래그 한 번으로 텍스트는 물론이고, 원문의 URL, 페이지 제목, 그리고 저장한 시간까지 한 번에 수집해 주는 도구 말입니다.</span> 여기에 Notion과 같은 세컨드 브레인으로의 자동 동기화 기능이 있다면 지식 관리는 완벽해질 것입니다.</p>
+                    
+                    <p class="mt-12 text-sm text-slate-400 border-t pt-4">
+                        * 마우스로 위 텍스트 중 아무 곳이나 드래그해 보세요! CatchIt 팝오버가 나타납니다.
+                    </p>
+                </div>
+            </div>
+
+            <!-- CatchIt 팝오버 (드래그 시 표시) -->
+            <div v-if="popover.show" 
+                 @mousedown.stop
+                 @mouseup.stop
+                 :style="{ top: popover.y + 'px', left: popover.x + 'px' }"
+                 class="absolute z-50 transform -translate-x-1/2 -translate-y-full mb-2 bg-white shadow-lg border border-slate-200 rounded-lg p-2 flex flex-col gap-2 animate-fade-in-up">
+                
+                <!-- 꼬리표 (Triangle) -->
+                <div class="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-4 h-4 bg-white border-b border-r border-slate-200 rotate-45"></div>
+
+                <div class="relative z-10 flex items-center gap-2">
+                    <div class="px-2 py-1 flex items-center border-r border-slate-100">
+                        <svg class="w-4 h-4 text-rose-500 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path></svg>
+                        <span class="text-xs font-semibold text-slate-700">CatchIt</span>
+                    </div>
+                    
+                    <!-- 태그 입력란 -->
+                    <input type="text" v-model="popover.tagInput" @keyup.enter="addPopoverTag" placeholder="태그 추가 (Enter)" 
+                           class="w-24 text-xs px-2 py-1.5 border border-slate-200 rounded outline-none focus:border-rose-400 focus:ring-1 focus:ring-rose-400 placeholder-slate-400 transition-all">
+
+                    <button @click="saveHighlight" class="px-3 py-1.5 bg-rose-500 hover:bg-rose-600 text-white text-sm font-medium rounded-md transition-colors flex items-center shadow-sm">
+                        <svg class="w-3 h-3 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                        저장
+                    </button>
+                </div>
+                
+                <!-- 추가된 태그 목록 (팝오버 내) -->
+                <div v-if="popover.tags.length > 0" class="relative z-10 flex flex-wrap gap-1 mt-0.5 px-1">
+                    <span v-for="(tag, index) in popover.tags" :key="index" class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-rose-50 text-rose-600 border border-rose-100">
+                        #{{ tag }}
+                        <button @click="removePopoverTag(index)" class="ml-1 text-rose-400 hover:text-rose-600 focus:outline-none" title="태그 삭제">
+                            <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        </button>
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- 2. 확장 프로그램 영역 (우측 Side Panel Dashboard) -->
+        <!-- ========================================== -->
+        <div class="w-[380px] bg-slate-50 h-full border-l border-slate-200 flex flex-col shadow-xl z-20">
+            <!-- Header -->
+            <div class="px-5 py-4 bg-white border-b border-slate-200 flex items-center justify-between shrink-0">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-lg bg-rose-100 flex items-center justify-center">
+                        <svg class="w-5 h-5 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path></svg>
+                    </div>
+                    <h2 class="text-lg font-semibold text-slate-800 tracking-tight">CatchIt</h2>
+                </div>
+                <button @click="toggleView" :class="currentView === 'settings' ? 'text-rose-600 bg-rose-50' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'" class="transition-colors p-1.5 rounded-md" title="설정">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                </button>
+            </div>
+
+            <!-- View Container -->
+            <div class="flex-1 flex flex-col overflow-hidden relative">
+
+                <!-- ========================= -->
+                <!-- Dashboard View -->
+                <!-- ========================= -->
+                <div v-show="currentView === 'dashboard'" class="flex-1 flex flex-col overflow-hidden">
+                    <!-- Search Bar -->
+                    <div class="p-4 shrink-0">
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                            </div>
+                            <input type="text" v-model="searchQuery" placeholder="저장된 텍스트 검색..." 
+                                   class="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent transition-all placeholder-slate-400 text-slate-800 shadow-sm">
+                        </div>
+                    </div>
+
+                    <!-- List Area -->
+                    <div class="flex-1 overflow-y-auto px-4 pb-4 space-y-3">
+                        
+                        <!-- 필터/정렬 정보 -->
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-medium text-slate-500">최근 저장된 항목 <span class="text-rose-500 ml-1">{{ filteredHighlights.length }}</span></span>
+                            <button class="text-xs text-rose-500 hover:text-rose-600 font-medium flex items-center">
+                                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                                Sync Now
+                            </button>
+                        </div>
+
+                        <!-- Empty State -->
+                        <div v-if="filteredHighlights.length === 0" class="flex flex-col items-center justify-center py-12 text-center">
+                            <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+                                <svg class="w-8 h-8 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path></svg>
+                            </div>
+                            <p class="text-sm font-medium text-slate-600">저장된 하이라이트가 없습니다</p>
+                            <p class="text-xs text-slate-400 mt-1">웹페이지에서 텍스트를 드래그해 보세요.</p>
+                        </div>
+
+                        <!-- Highlight Cards -->
+                        <div v-for="item in filteredHighlights" :key="item.id" 
+                             class="bg-white border border-slate-100 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow group relative">
+                            
+                            <!-- Quote Body -->
+                            <div class="border-l-4 border-rose-500 pl-3 mb-3">
+                                <p class="text-sm font-normal text-slate-800 leading-relaxed line-clamp-3">
+                                    {{ item.text }}
+                                </p>
+                            </div>
+                            
+                            <!-- Context (Title & URL) -->
+                            <div class="mb-3">
+                                <h3 class="text-sm font-medium text-slate-800 truncate">{{ item.title }}</h3>
+                                <p class="text-xs text-slate-500 truncate mt-0.5">{{ item.url }}</p>
+                            </div>
+                            
+                            <!-- Tags & Status -->
+                            <div class="flex items-center justify-between mt-4">
+                                <div class="flex flex-wrap gap-1.5">
+                                    <span v-for="tag in item.tags" :key="tag" class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-rose-50 text-rose-600 border border-rose-100">
+                                        #{{ tag }}
+                                    </span>
+                                </div>
+                                
+                                <!-- Notion Sync Status -->
+                                <div class="flex items-center" :title="'Notion 동기화 상태: ' + item.notion.status">
+                                    <span v-if="item.notion.status === 'synced'" class="flex items-center text-[10px] font-medium text-emerald-500 bg-emerald-50 px-1.5 py-0.5 rounded">
+                                        <svg class="w-3 h-3 mr-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                        Synced
+                                    </span>
+                                    <span v-else-if="item.notion.status === 'failed'" class="flex items-center text-[10px] font-medium text-red-600 bg-red-50 px-1.5 py-0.5 rounded">
+                                        <svg class="w-3 h-3 mr-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                        Failed
+                                    </span>
+                                    <span v-else class="flex items-center text-[10px] font-medium text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">
+                                        <svg class="w-3 h-3 mr-0.5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                                        Pending
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- Actions (Hover 시 표시) -->
+                            <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex bg-white/90 backdrop-blur-sm rounded-md shadow-sm border border-slate-100">
+                                <button class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-l-md transition-colors" title="클립보드에 복사">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                                </button>
+                                <button class="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 border-l border-slate-100 transition-colors" title="원문 열기">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                                </button>
+                                <button @click="deleteHighlight(item.id)" class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-r-md border-l border-slate-100 transition-colors" title="삭제">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
+                </div> <!-- End Dashboard View -->
+                
+                <!-- ========================= -->
+                <!-- Settings View -->
+                <!-- ========================= -->
+                <div v-show="currentView === 'settings'" class="absolute inset-0 bg-slate-50 overflow-y-auto p-5 space-y-6 z-10">
+                    
+                    <!-- 동기화 설정 -->
+                    <div>
+                        <h3 class="text-sm font-semibold text-slate-800 mb-3 flex items-center">
+                            <svg class="w-4 h-4 mr-1.5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path></svg>
+                            Notion 연동 (필수 항목)
+                        </h3>
+                        <div class="space-y-5 bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
+                            <!-- Integration Token -->
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">
+                                    Integration Token <span class="text-rose-500">*</span>
+                                </label>
+                                <p class="text-xs text-slate-500 mb-2 leading-relaxed">Notion의 <a href="#" class="text-rose-500 hover:underline">내 API 통합</a> 페이지에서 새 통합을 만들고 <b>프라이빗 API 토큰</b>을 복사하세요.</p>
+                                <input type="password" v-model="settings.notionToken" placeholder="secret_..." class="w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:ring-2 focus:ring-rose-500 focus:border-rose-500 outline-none transition-all font-mono">
+                            </div>
+
+                            <!-- Database ID -->
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">
+                                    Database ID <span class="text-rose-500">*</span>
+                                </label>
+                                <p class="text-xs text-slate-500 mb-2 leading-relaxed">데이터베이스 페이지 URL에서 <code class="bg-slate-100 px-1 rounded text-slate-600">notion.so/</code> 와 <code class="bg-slate-100 px-1 rounded text-slate-600">?v=</code> 사이의 32자리 문자열입니다.</p>
+                                <input type="text" v-model="settings.notionDbId" placeholder="예: 1a2b3c4d5e6f7g8h9i0j..." class="w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:ring-2 focus:ring-rose-500 focus:border-rose-500 outline-none transition-all font-mono">
+                                
+                                <div class="mt-3 p-2.5 bg-indigo-50 border border-indigo-100 rounded-md flex items-start gap-2">
+                                    <svg class="w-4 h-4 text-indigo-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                    <p class="text-[11px] text-indigo-700 leading-relaxed">
+                                        <b>💡 데이터베이스 연결 확인:</b> 생성한 Notion API 통합을 대상 데이터베이스 우측 상단 <b>[···] 메뉴 -> 연결 추가</b>에서 반드시 권한을 부여해야 합니다.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center justify-between pt-3 border-t border-slate-100 mt-2">
+                                <div>
+                                    <span class="block text-sm font-medium text-slate-700">자동 동기화 (Auto Sync)</span>
+                                    <span class="block text-[10px] text-slate-500 mt-0.5">수집 즉시 Notion으로 전송합니다.</span>
+                                </div>
+                                <!-- Toggle Switch -->
+                                <button @click="settings.autoSync = !settings.autoSync" :class="settings.autoSync ? 'bg-rose-500' : 'bg-slate-200'" class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none shrink-0">
+                                    <span :class="settings.autoSync ? 'translate-x-5' : 'translate-x-1'" class="inline-block h-3 w-3 transform rounded-full bg-white shadow-sm transition-transform"></span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 일반 설정 -->
+                    <div>
+                        <h3 class="text-sm font-semibold text-slate-800 mb-3">일반 설정</h3>
+                        <div class="space-y-4 bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <span class="block text-sm font-medium text-slate-700">Alt + 드래그 수집</span>
+                                    <span class="block text-[10px] text-slate-500 mt-0.5">Alt 키를 누른 상태로 드래그할 때만<br>수집 팝오버를 표시합니다.</span>
+                                </div>
+                                <!-- Toggle Switch -->
+                                <button @click="settings.requireAlt = !settings.requireAlt" :class="settings.requireAlt ? 'bg-rose-500' : 'bg-slate-200'" class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none shrink-0">
+                                    <span :class="settings.requireAlt ? 'translate-x-5' : 'translate-x-1'" class="inline-block h-3 w-3 transform rounded-full bg-white shadow-sm transition-transform"></span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                </div> <!-- End Settings View -->
+
+            </div> <!-- End View Container -->
+        </div>
+
+    </div>
+
+    <script>
+        const { createApp, ref, computed } = Vue;
+
+        createApp({
+            setup() {
+                // 더미 데이터 초기화
+                const highlights = ref([
+                    {
+                        id: '1',
+                        text: '단순한 메모 앱에 복사해서 붙여넣기를 하더라도 문제는 발생합니다. 가장 큰 문제는 "현재 페이지 컨텍스트(링크, 제목, 문맥)가 빠져 재사용성이 떨어진다"는 점입니다.',
+                        url: 'https://example.com/blog/future-of-ai',
+                        title: '왜 우리는 항상 정보를 잃어버릴까?',
+                        createdAt: Date.now() - 1000000,
+                        tags: ['UX', 'Productivity'],
+                        notion: { status: 'synced' }
+                    },
+                    {
+                        id: '2',
+                        text: '드래그 한 번으로 텍스트는 물론이고, 원문의 URL, 페이지 제목, 그리고 저장한 시간까지 한 번에 수집해 주는 도구 말입니다.',
+                        url: 'https://example.com/blog/future-of-ai',
+                        title: '왜 우리는 항상 정보를 잃어버릴까?',
+                        createdAt: Date.now() - 50000,
+                        tags: ['Idea'],
+                        notion: { status: 'pending' }
+                    }
+                ]);
+
+                const searchQuery = ref('');
+                
+                // 뷰 상태 관리 (dashboard / settings)
+                const currentView = ref('dashboard');
+                const toggleView = () => {
+                    currentView.value = currentView.value === 'dashboard' ? 'settings' : 'dashboard';
+                };
+
+                // 설정 상태 관리
+                const settings = ref({
+                    notionToken: '',
+                    notionDbId: '',
+                    autoSync: true,
+                    requireAlt: false
+                });
+
+                // 팝오버 상태 관리
+                const popover = ref({
+                    show: false,
+                    x: 0,
+                    y: 0,
+                    selectedText: '',
+                    tagInput: '',
+                    tags: []
+                });
+
+                // 태그 추가 로직 (팝오버에서 Enter 입력 시)
+                const addPopoverTag = () => {
+                    const tag = popover.value.tagInput.trim();
+                    // 비어있지 않고, 중복되지 않을 때만 추가
+                    if (tag && !popover.value.tags.includes(tag)) {
+                        popover.value.tags.push(tag);
+                    }
+                    popover.value.tagInput = ''; // 입력창 초기화
+                };
+
+                // 태그 삭제 로직
+                const removePopoverTag = (index) => {
+                    popover.value.tags.splice(index, 1);
+                };
+
+                // 커스텀 하이라이트 해제 함수
+                const clearCustomHighlight = () => {
+                    if (window.CSS && CSS.highlights) {
+                        CSS.highlights.delete('catchit-hl');
+                    }
+                };
+
+                // 검색 필터링 로직
+                const filteredHighlights = computed(() => {
+                    if (!searchQuery.value) return highlights.value;
+                    const query = searchQuery.value.toLowerCase();
+                    return highlights.value.filter(item => 
+                        item.text.toLowerCase().includes(query) || 
+                        item.title.toLowerCase().includes(query) ||
+                        item.tags.some(tag => tag.toLowerCase().includes(query))
+                    );
+                });
+
+                // 마우스 드래그 감지 로직 (콘텐츠 스크립트 시뮬레이션)
+                const handleSelection = (e) => {
+                    // Alt 키 요구 설정이 켜져있는데 Alt 키를 안 눌렀다면 무시
+                    if (settings.value.requireAlt && !e.altKey) {
+                        return;
+                    }
+
+                    const selection = window.getSelection();
+                    const text = selection.toString().trim();
+                    
+                    if (text.length > 5) {
+                        // 선택 영역의 위치 계산하여 팝오버 띄우기
+                        const range = selection.getRangeAt(0);
+                        const rect = range.getBoundingClientRect();
+                        
+                        popover.value = {
+                            show: true,
+                            x: rect.left + (rect.width / 2),
+                            y: rect.top - 10, // 약간 위로
+                            selectedText: text,
+                            tagInput: '', // 새 팝오버가 뜰 때 태그 입력창 초기화
+                            tags: []      // 새 팝오버가 뜰 때 태그 목록 초기화
+                        };
+
+                        // 커스텀 하이라이트 적용 (태그 입력 중에도 시각적 하이라이트 유지)
+                        if (window.CSS && CSS.highlights) {
+                            const highlight = new Highlight(range);
+                            CSS.highlights.set('catchit-hl', highlight);
+                        }
+
+                    } else {
+                        popover.value.show = false;
+                        clearCustomHighlight();
+                    }
+                };
+
+                const hidePopover = () => {
+                    // 선택 취소 시 팝오버 숨기기 (약간의 딜레이)
+                    setTimeout(() => {
+                        if (window.getSelection().toString().trim().length === 0) {
+                            popover.value.show = false;
+                            clearCustomHighlight();
+                        }
+                    }, 100);
+                };
+
+                // 하이라이트 저장 버튼 클릭 시
+                const saveHighlight = () => {
+                    if (!popover.value.selectedText) return;
+
+                    const newItem = {
+                        id: Date.now().toString(),
+                        text: popover.value.selectedText,
+                        url: 'https://example.com/blog/future-of-ai',
+                        title: '왜 우리는 항상 정보를 잃어버릴까?',
+                        createdAt: Date.now(),
+                        tags: [...popover.value.tags], // 팝오버에서 입력한 태그 배열을 복사하여 저장
+                        notion: { status: 'pending' } // 저장 직후에는 pending
+                    };
+
+                    // 맨 앞에 추가
+                    highlights.value.unshift(newItem);
+                    
+                    // 팝오버 숨기기 및 선택 해제
+                    popover.value.show = false;
+                    window.getSelection().removeAllRanges();
+                    clearCustomHighlight();
+
+                    // (시뮬레이션) 2초 후 Notion 동기화 완료 상태로 변경
+                    setTimeout(() => {
+                        const idx = highlights.value.findIndex(h => h.id === newItem.id);
+                        if(idx !== -1) {
+                            highlights.value[idx].notion.status = 'synced';
+                        }
+                    }, 2000);
+                };
+
+                const deleteHighlight = (id) => {
+                    highlights.value = highlights.value.filter(h => h.id !== id);
+                };
+
+                return {
+                    highlights,
+                    searchQuery,
+                    currentView,
+                    toggleView,
+                    settings,
+                    filteredHighlights,
+                    popover,
+                    addPopoverTag,
+                    removePopoverTag,
+                    handleSelection,
+                    hidePopover,
+                    saveHighlight,
+                    deleteHighlight
+                };
+            }
+        }).mount('#app');
+    </script>
+
+    <style>
+        /* 팝오버 등장 애니메이션 */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translate(-50%, -80%) scale(0.95); }
+            to { opacity: 1; transform: translate(-50%, -100%) scale(1); }
+        }
+        .animate-fade-in-up {
+            animation: fadeInUp 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+    </style>
+</body>
+</html>
