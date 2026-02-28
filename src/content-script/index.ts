@@ -5,6 +5,7 @@ const POPOVER_ID = 'catchit-selection-popover';
 const MIN_SELECTION_LENGTH = 3;
 
 let currentSelectionText = '';
+let isAltPressed = false;
 
 function removePopover(): void {
   const existing = document.getElementById(POPOVER_ID);
@@ -24,7 +25,7 @@ function createPopover(x: number, y: number): HTMLDivElement {
   popover.id = POPOVER_ID;
   popover.style.position = 'fixed';
   popover.style.left = `${x}px`;
-  popover.style.top = `${y}px`;
+  popover.style.top = `${Math.max(y, 12)}px`;
   popover.style.transform = 'translate(-50%, calc(-100% - 8px))';
   popover.style.zIndex = '2147483647';
   popover.style.display = 'flex';
@@ -111,36 +112,48 @@ function createPopover(x: number, y: number): HTMLDivElement {
   popover.appendChild(cancelButton);
 
   document.body.appendChild(popover);
+
+  // If there's not enough room above the selected text, place popover below it.
+  const bounds = popover.getBoundingClientRect();
+  if (bounds.top < 8) {
+    popover.style.transform = 'translate(-50%, 8px)';
+  }
+
   return popover;
 }
 
 async function handleMouseUp(event: MouseEvent): Promise<void> {
-  if ((event.target as HTMLElement | null)?.closest(`#${POPOVER_ID}`)) {
-    return;
-  }
+  try {
+    if ((event.target as HTMLElement | null)?.closest(`#${POPOVER_ID}`)) {
+      return;
+    }
 
-  const settings = await getSettings();
-  if (settings.requireAlt && !event.altKey) {
+    const settings = await getSettings();
+    if (settings.requireAlt && !(event.altKey || isAltPressed)) {
+      removePopover();
+      return;
+    }
+
+    const selection = window.getSelection();
+    const text = selection?.toString().trim() ?? '';
+    if (!selection || selection.rangeCount === 0 || text.length < MIN_SELECTION_LENGTH) {
+      removePopover();
+      return;
+    }
+
+    const range = selection.getRangeAt(0);
+    const rect = range.getBoundingClientRect();
+    if (rect.width === 0 && rect.height === 0) {
+      removePopover();
+      return;
+    }
+
+    currentSelectionText = text;
+    createPopover(rect.left + rect.width / 2, rect.top);
+  } catch (error) {
+    console.debug('[CatchIt] handleMouseUp failed:', error);
     removePopover();
-    return;
   }
-
-  const selection = window.getSelection();
-  const text = selection?.toString().trim() ?? '';
-  if (!selection || selection.rangeCount === 0 || text.length < MIN_SELECTION_LENGTH) {
-    removePopover();
-    return;
-  }
-
-  const range = selection.getRangeAt(0);
-  const rect = range.getBoundingClientRect();
-  if (rect.width === 0 && rect.height === 0) {
-    removePopover();
-    return;
-  }
-
-  currentSelectionText = text;
-  createPopover(rect.left + rect.width / 2, rect.top);
 }
 
 document.addEventListener('mouseup', (event) => {
@@ -152,4 +165,16 @@ document.addEventListener('mousedown', (event) => {
     return;
   }
   removePopover();
+});
+
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Alt') {
+    isAltPressed = true;
+  }
+});
+
+document.addEventListener('keyup', (event) => {
+  if (event.key === 'Alt') {
+    isAltPressed = false;
+  }
 });
