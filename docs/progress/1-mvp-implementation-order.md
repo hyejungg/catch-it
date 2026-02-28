@@ -54,6 +54,7 @@
   - 검색/입력 focus ring을 `rose`로 수정
   - checkbox를 목업과 유사한 토글 스위치 버튼 UI로 교체
   - content 팝오버 저장 버튼 색상을 `rose`로 조정
+  - 드래그 선택 하이라이트(`::selection`) 색상을 `rose`로 적용
 - Notion Push Sync 반영:
   - background에서 Notion API page 생성 호출 구현
   - 저장 시 Auto Sync(`autoSync`) 조건부 동기화 연결
@@ -67,6 +68,10 @@
   - 확장 아이콘 클릭 시 side panel 기본 오픈 동작 적용
   - 헤더 타이틀을 `CatchIt - 웹 텍스트 수집기` + 서브타이틀 구조로 변경
   - Settings에 `연동 확인`/`Notion DB 바로가기` 버튼 및 상태 메시지 추가
+- 추가 요청 사항 2차 반영:
+  - 드래그 팝오버에 태그 입력칸(쉼표 구분) 추가
+  - 드래그 팝오버의 `취소` 버튼 제거(외부 클릭으로 닫기 유지)
+  - 선택 영역 하이라이트 컬러를 `rose` 계열로 통일
 
 ## 상태(Status)
 - `in-progress`
@@ -133,7 +138,7 @@
 ### 5) Content Script 드래그 감지 + 팝오버
 - 작업:
   - 텍스트 선택 감지, 길이 조건, 팝오버 위치 계산
-  - 저장/취소 버튼 및 태그 입력(선택)
+  - 저장 버튼 + 태그 입력칸 구성(취소는 외부 클릭으로 처리)
   - `requireAlt` 설정 반영
 - 완료 기준:
   - FR-1~FR-3 기본 저장 트리거 가능
@@ -177,3 +182,5 @@
   - 헤더 타이틀 구조를 `CatchIt - 웹 텍스트 수집기` + `Dashboards/Settings`로 통일
   - Settings에 `연동 확인(Test Connection)` 버튼 추가 및 상태 메시지 표시
   - `Notion DB 바로가기(Open Notion)` 버튼 추가
+  - 드래그 팝오버 태그 입력 기능 추가 및 `취소` 버튼 제거
+  - 드래그 선택 하이라이트 색상 `rose` 적용
