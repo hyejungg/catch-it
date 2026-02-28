@@ -14,6 +14,8 @@
   - 저장 시 자동 동기화(옵션)
   - `Sync Now` 배치 동기화
   - 상태 기록(`ready`, `sync`, `failed`)
+  - `Database ID` 변경 시 기존 상태 배지 `ready`로 초기화
+  - `연동 확인` 실행 시 Notion DB 기준으로 `sync/ready` 상태 재평가
 
 ## 기술 스택
 - Vue 3 + TypeScript + Vite
@@ -62,7 +64,8 @@ npm run build
    - Database ID: 대상 DB 페이지 URL의 마지막 32자리 식별자 복사
    - 대상 DB에 해당 Integration을 `Connections`로 연결
 3. `Auto Sync` ON 후 저장 테스트
-4. Dashboard에서 `Sync Now` 클릭해 동기화 결과 확인
+4. `연동 확인` 클릭 후 상태 메시지(`sync n / ready n`) 확인
+5. Dashboard에서 `Sync Now` 클릭해 동기화 결과 확인
 
 ## QA
 - 수동 QA 항목은 아래 문서 참고:

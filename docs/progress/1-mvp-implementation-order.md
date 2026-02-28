@@ -90,6 +90,9 @@
 - 추가 요청 사항 9차 반영:
   - Settings Notion 안내에 템플릿 복제 링크 추가
   - 태그 입력 시작 시 하이라이트 영역 축소 이슈 보정(선택 직후 표시 고정)
+- 추가 요청 사항 10차 반영:
+  - `notionDbId` 변경 시 기존 하이라이트의 Notion 상태를 일괄 `ready`로 초기화
+  - `연동 확인(Test Connection)` 실행 시 Notion DB 페이지 목록을 조회해 `sync/ready` 상태 재평가
 
 ## 상태(Status)
 - `in-progress`
@@ -210,3 +213,5 @@
   - `pending/synced` 레거시 상태 코드 제거
   - Notion 템플릿 복제 링크 안내 추가
   - 태그 입력 중 하이라이트 영역 축소 현상 보정
+  - `notionDbId` 변경 시 배지 상태 일괄 `ready` 초기화
+  - `연동 확인` 실행 시 Notion DB 기준 `sync/ready` 재평가 반영
