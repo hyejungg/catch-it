@@ -60,6 +60,9 @@
   - `Sync Now` 메시지 처리 및 미동기화 항목 배치 동기화 구현
   - 동기화 결과를 `notion.status/pageId/syncedAt/error`에 기록
   - 401/403/429 상태별 오류 메시지 매핑 처리
+- 품질/마감 반영:
+  - Dashboard UI 더미 데이터(`mockHighlights`) 제거
+  - QA 체크리스트 문서 추가: `docs/qa/1-mvp-qa-checklist.md`
 
 ## 상태(Status)
 - `in-progress`
@@ -159,7 +162,7 @@
   - 마지막 정리 단계에서 UI 더미 데이터(`mockHighlights`) 제거
 - 완료 기준:
   - MUST 범위 안정 동작 + SHOULD 주요 플로우 확인
-- 상태: `todo`
+- 상태: `done`
 
 ## 다음(Next)
-- 1순위 실행: `8) 품질/마감`
+- QA 실행 결과 기반 버그 수정/우선순위 재정의
