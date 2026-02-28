@@ -54,6 +54,12 @@
   - 검색/입력 focus ring을 `rose`로 수정
   - checkbox를 목업과 유사한 토글 스위치 버튼 UI로 교체
   - content 팝오버 저장 버튼 색상을 `rose`로 조정
+- Notion Push Sync 반영:
+  - background에서 Notion API page 생성 호출 구현
+  - 저장 시 Auto Sync(`autoSync`) 조건부 동기화 연결
+  - `Sync Now` 메시지 처리 및 미동기화 항목 배치 동기화 구현
+  - 동기화 결과를 `notion.status/pageId/syncedAt/error`에 기록
+  - 401/403/429 상태별 오류 메시지 매핑 처리
 
 ## 상태(Status)
 - `in-progress`
@@ -143,17 +149,17 @@
   - 실패 재시도 기본 로직(간단 큐) 추가
 - 완료 기준:
   - FR-14~FR-19 충족(푸시 전용)
-- 상태: `todo`
+- 상태: `done`
 
 ### 8) 품질/마감
 - 작업:
   - 에러 메시지 분리(사용자용/내부로그용)
   - 민감정보 마스킹 점검(Notion 토큰/DB ID)
   - 주요 흐름 수동 테스트 체크리스트 작성
+  - 마지막 정리 단계에서 UI 더미 데이터(`mockHighlights`) 제거
 - 완료 기준:
   - MUST 범위 안정 동작 + SHOULD 주요 플로우 확인
 - 상태: `todo`
 
 ## 다음(Next)
-- 1순위 실행: `7) Notion Push Sync (SHOULD)`
-- 이후: `8) 품질/마감`
+- 1순위 실행: `8) 품질/마감`
