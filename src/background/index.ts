@@ -5,7 +5,7 @@ import {
   updateHighlight
 } from '@/shared/storage/highlight-storage';
 import { getSettings } from '@/shared/storage/settings-storage';
-import type { Highlight } from '@/shared/types/highlight';
+import { normalizeNotionSyncStatus, type Highlight } from '@/shared/types/highlight';
 import type {
   SaveHighlightRequestMessage,
   SyncNowRequestMessage,
@@ -54,6 +54,21 @@ function mapNotionError(status: number, fallback: string): string {
   return fallback || `Notion 동기화 실패(${status})`;
 }
 
+function logSync(message: string, data?: Record<string, unknown>): void {
+  if (data) {
+    console.info('[CatchIt][Sync]', message, data);
+    return;
+  }
+  console.info('[CatchIt][Sync]', message);
+}
+
+function maskIdentifier(value: string): string {
+  const compact = value.replaceAll('-', '');
+  if (!compact) return '(empty)';
+  if (compact.length <= 4) return `***${compact}`;
+  return `***${compact.slice(-4)}`;
+}
+
 function toISOStringFromTimestamp(timestamp: number): string {
   return new Date(timestamp).toISOString();
 }
@@ -63,6 +78,13 @@ async function createNotionPage(
   notionToken: string,
   notionDbId: string
 ): Promise<string> {
+  logSync('Notion page create request', {
+    highlightId: highlight.id,
+    dbId: maskIdentifier(notionDbId),
+    textLength: highlight.text.length,
+    tagsCount: highlight.tags.length
+  });
+
   const body = {
     parent: { database_id: notionDbId },
     properties: {
@@ -100,6 +122,14 @@ async function createNotionPage(
     }
   }
 
+  logSync('Notion page create response', {
+    highlightId: highlight.id,
+    status: response.status,
+    ok: response.ok,
+    hasPageId: Boolean(parsed.id),
+    errorMessage: parsed.message ?? null
+  });
+
   if (!response.ok || !parsed.id) {
     throw new Error(mapNotionError(response.status, parsed.message ?? 'Notion API 응답 오류'));
   }
@@ -107,12 +137,23 @@ async function createNotionPage(
   return parsed.id;
 }
 
-async function syncHighlightToNotion(highlight: Highlight): Promise<'synced' | 'failed'> {
+async function syncHighlightToNotion(highlight: Highlight): Promise<'sync' | 'failed'> {
+  logSync('Sync highlight started', {
+    highlightId: highlight.id,
+    currentStatus: normalizeNotionSyncStatus(highlight.notion?.status)
+  });
+
   const settings = await getSettings();
   if (!settings.notionToken || !settings.notionDbId) {
+    logSync('Sync skipped: missing Notion settings', {
+      highlightId: highlight.id,
+      hasToken: Boolean(settings.notionToken),
+      hasDatabaseId: Boolean(settings.notionDbId)
+    });
+
     await updateHighlight(highlight.id, {
       notion: {
-        status: 'failed',
+        status: 'ready',
         error: 'Notion 설정 누락: 토큰 또는 Database ID를 확인하세요.'
       }
     });
@@ -120,22 +161,30 @@ async function syncHighlightToNotion(highlight: Highlight): Promise<'synced' | '
   }
 
   await updateHighlight(highlight.id, {
-    notion: { status: 'pending', error: undefined }
+    notion: { status: 'ready', error: undefined }
   });
 
   try {
     const pageId = await createNotionPage(highlight, settings.notionToken, settings.notionDbId);
     await updateHighlight(highlight.id, {
       notion: {
-        status: 'synced',
+        status: 'sync',
         pageId,
         syncedAt: Date.now(),
         error: undefined
       }
     });
-    return 'synced';
+    logSync('Sync highlight success', {
+      highlightId: highlight.id,
+      pageId: maskIdentifier(pageId)
+    });
+    return 'sync';
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Notion 동기화 실패';
+    logSync('Sync highlight failed', {
+      highlightId: highlight.id,
+      message
+    });
     await updateHighlight(highlight.id, {
       notion: {
         status: 'failed',
@@ -149,26 +198,36 @@ async function syncHighlightToNotion(highlight: Highlight): Promise<'synced' | '
 async function syncNow(): Promise<SyncNowResult> {
   const settings = await getSettings();
   if (!settings.notionToken || !settings.notionDbId) {
+    logSync('Sync now skipped: missing Notion settings', {
+      hasToken: Boolean(settings.notionToken),
+      hasDatabaseId: Boolean(settings.notionDbId)
+    });
     return { total: 0, synced: 0, failed: 0 };
   }
 
   const highlights = await getHighlights();
-  const targets = highlights.filter((item) => item.notion?.status !== 'synced');
+  const targets = highlights.filter((item) => normalizeNotionSyncStatus(item.notion?.status) !== 'sync');
+  logSync('Sync now started', {
+    totalHighlights: highlights.length,
+    targetCount: targets.length
+  });
 
   let synced = 0;
   let failed = 0;
 
   for (const item of targets) {
     const result = await syncHighlightToNotion(item);
-    if (result === 'synced') synced += 1;
+    if (result === 'sync') synced += 1;
     else failed += 1;
   }
 
-  return {
+  const result = {
     total: targets.length,
     synced,
     failed
   };
+  logSync('Sync now finished', result);
+  return result;
 }
 
 async function testNotionConnection(): Promise<{ ok: boolean; message: string }> {
@@ -190,6 +249,12 @@ async function testNotionConnection(): Promise<{ ok: boolean; message: string }>
       }
     }
   );
+
+  logSync('Notion connection test response', {
+    status: response.status,
+    ok: response.ok,
+    dbId: maskIdentifier(settings.notionDbId)
+  });
 
   if (!response.ok) {
     const raw = await response.text();
@@ -238,15 +303,23 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
           tags: message.payload.tags ?? [],
           contextBefore: message.payload.contextBefore,
           contextAfter: message.payload.contextAfter,
-          notion: { status: 'pending' }
+          notion: { status: 'ready' }
         });
 
         const settings = await getSettings();
-        if (settings.autoSync) {
+        if (settings.autoSync && settings.notionToken && settings.notionDbId) {
+          logSync('Auto sync triggered after save', { highlightId: created.id });
           const latest = await getHighlightById(created.id);
           if (latest) {
             void syncHighlightToNotion(latest);
           }
+        } else {
+          logSync('Auto sync not triggered after save', {
+            highlightId: created.id,
+            autoSync: settings.autoSync,
+            hasToken: Boolean(settings.notionToken),
+            hasDatabaseId: Boolean(settings.notionDbId)
+          });
         }
 
         sendResponse({ ok: true });

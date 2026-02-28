@@ -1,4 +1,11 @@
-export type NotionSyncStatus = 'pending' | 'synced' | 'failed';
+export type NotionSyncStatus = 'ready' | 'sync' | 'failed';
+
+export function normalizeNotionSyncStatus(status: unknown): NotionSyncStatus {
+  if (status === 'sync' || status === 'failed' || status === 'ready') {
+    return status;
+  }
+  return 'ready';
+}
 
 export interface NotionSyncMetadata {
   status: NotionSyncStatus;
