@@ -1,4 +1,5 @@
 const POPOVER_ID = 'catchit-selection-popover';
+const STYLE_ID = 'catchit-selection-style';
 const MIN_SELECTION_LENGTH = 3;
 const SETTINGS_STORAGE_KEY = 'settings';
 
@@ -51,6 +52,26 @@ function clearSelection(): void {
   window.getSelection()?.removeAllRanges();
 }
 
+function ensureSelectionStyle(): void {
+  if (document.getElementById(STYLE_ID)) {
+    return;
+  }
+
+  const style = document.createElement('style');
+  style.id = STYLE_ID;
+  style.textContent = `
+    ::selection {
+      background: #fecdd3;
+      color: #881337;
+    }
+    ::-moz-selection {
+      background: #fecdd3;
+      color: #881337;
+    }
+  `;
+  document.documentElement.appendChild(style);
+}
+
 function createPopover(x: number, y: number): HTMLDivElement {
   removePopover();
 
@@ -62,7 +83,7 @@ function createPopover(x: number, y: number): HTMLDivElement {
   popover.style.transform = 'translate(-50%, calc(-100% - 8px))';
   popover.style.zIndex = '2147483647';
   popover.style.display = 'flex';
-  popover.style.gap = '6px';
+  popover.style.gap = '8px';
   popover.style.alignItems = 'center';
   popover.style.padding = '8px';
   popover.style.borderRadius = '10px';
@@ -78,6 +99,17 @@ function createPopover(x: number, y: number): HTMLDivElement {
   title.style.color = '#334155';
   title.style.marginRight = '2px';
 
+  const tagInput = document.createElement('input');
+  tagInput.type = 'text';
+  tagInput.placeholder = '태그(쉼표 구분)';
+  tagInput.style.width = '140px';
+  tagInput.style.border = '1px solid #cbd5e1';
+  tagInput.style.borderRadius = '8px';
+  tagInput.style.padding = '6px 8px';
+  tagInput.style.fontSize = '12px';
+  tagInput.style.color = '#334155';
+  tagInput.style.outline = 'none';
+
   const saveButton = document.createElement('button');
   saveButton.type = 'button';
   saveButton.textContent = '저장';
@@ -90,22 +122,16 @@ function createPopover(x: number, y: number): HTMLDivElement {
   saveButton.style.fontWeight = '600';
   saveButton.style.cursor = 'pointer';
 
-  const cancelButton = document.createElement('button');
-  cancelButton.type = 'button';
-  cancelButton.textContent = '취소';
-  cancelButton.style.border = '1px solid #cbd5e1';
-  cancelButton.style.background = '#ffffff';
-  cancelButton.style.color = '#475569';
-  cancelButton.style.padding = '6px 10px';
-  cancelButton.style.borderRadius = '8px';
-  cancelButton.style.fontSize = '12px';
-  cancelButton.style.cursor = 'pointer';
-
   saveButton.addEventListener('click', () => {
     if (!currentSelectionText) {
       removePopover();
       return;
     }
+
+    const tags = tagInput.value
+      .split(',')
+      .map((tag) => tag.trim())
+      .filter((tag) => tag.length > 0);
 
     const message: SaveHighlightRequestMessage = {
       type: 'HIGHLIGHT_SAVE_REQUEST',
@@ -113,7 +139,7 @@ function createPopover(x: number, y: number): HTMLDivElement {
         text: currentSelectionText,
         url: window.location.href,
         title: document.title,
-        tags: []
+        tags
       }
     };
 
@@ -130,19 +156,13 @@ function createPopover(x: number, y: number): HTMLDivElement {
     currentSelectionText = '';
   });
 
-  cancelButton.addEventListener('click', () => {
-    removePopover();
-    clearSelection();
-    currentSelectionText = '';
-  });
-
   popover.addEventListener('mousedown', (event) => {
     event.stopPropagation();
   });
 
   popover.appendChild(title);
+  popover.appendChild(tagInput);
   popover.appendChild(saveButton);
-  popover.appendChild(cancelButton);
 
   document.body.appendChild(popover);
 
@@ -211,3 +231,5 @@ document.addEventListener('keyup', (event) => {
     isAltPressed = false;
   }
 });
+
+ensureSelectionStyle();
