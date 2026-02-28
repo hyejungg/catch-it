@@ -2,10 +2,14 @@
 import { computed, onMounted, ref } from 'vue';
 import { deleteHighlight, getHighlights } from '@/shared/storage/highlight-storage';
 import { searchHighlights, sortHighlightsByCreatedAt } from '@/shared/storage/highlight-selectors';
+import { getSettings, saveSettings } from '@/shared/storage/settings-storage';
 import type { Highlight } from '@/shared/types/highlight';
+import { DEFAULT_APP_SETTINGS, type AppSettings } from '@/shared/types/settings';
 
 const searchQuery = ref('');
 const highlights = ref<Highlight[]>([]);
+const currentView = ref<'dashboard' | 'settings'>('dashboard');
+const settings = ref<AppSettings>({ ...DEFAULT_APP_SETTINGS });
 const mockHighlights: Highlight[] = [
   {
     id: 'sample-1',
@@ -31,6 +35,10 @@ function canUseChromeStorage(): boolean {
   return typeof chrome !== 'undefined' && Boolean(chrome.storage?.local);
 }
 
+function toggleView(): void {
+  currentView.value = currentView.value === 'dashboard' ? 'settings' : 'dashboard';
+}
+
 async function loadHighlights(): Promise<void> {
   if (!canUseChromeStorage()) {
     highlights.value = sortHighlightsByCreatedAt(mockHighlights, 'desc');
@@ -39,6 +47,28 @@ async function loadHighlights(): Promise<void> {
 
   const stored = await getHighlights();
   highlights.value = sortHighlightsByCreatedAt(stored, 'desc');
+}
+
+async function loadSettings(): Promise<void> {
+  if (!canUseChromeStorage()) {
+    settings.value = { ...DEFAULT_APP_SETTINGS };
+    return;
+  }
+
+  settings.value = await getSettings();
+}
+
+function updateSettings<K extends keyof AppSettings>(key: K, value: AppSettings[K]): void {
+  settings.value = {
+    ...settings.value,
+    [key]: value
+  };
+
+  if (!canUseChromeStorage()) {
+    return;
+  }
+
+  void saveSettings(settings.value);
 }
 
 const filteredHighlights = computed(() => {
@@ -81,101 +111,155 @@ function removeHighlight(id: string): void {
 
 onMounted(() => {
   void loadHighlights();
+  void loadSettings();
 });
 </script>
 
 <template>
   <main class="min-h-screen bg-slate-50 p-4 text-slate-800">
     <header class="mb-4 flex items-center justify-between rounded-lg bg-white p-3 shadow-sm">
-      <h1 class="text-lg font-semibold">CatchIt Dashboard</h1>
-      <span class="rounded bg-brand-600 px-2 py-1 text-xs text-white">Mock Data</span>
+      <h1 class="text-lg font-semibold">CatchIt {{ currentView === 'dashboard' ? 'Dashboard' : 'Settings' }}</h1>
+      <button
+        type="button"
+        class="rounded border border-slate-200 px-2 py-1 text-xs text-slate-700 hover:bg-slate-100"
+        @click="toggleView"
+      >
+        {{ currentView === 'dashboard' ? '설정' : '대시보드' }}
+      </button>
     </header>
 
-    <section class="mb-3 rounded-lg bg-white p-3 shadow-sm">
-      <input
-        v-model="searchQuery"
-        type="text"
-        placeholder="저장된 텍스트 검색..."
-        class="w-full rounded-md border border-slate-200 px-3 py-2 text-sm outline-none transition focus:border-brand-600"
-      />
-    </section>
+    <template v-if="currentView === 'dashboard'">
+      <section class="mb-3 rounded-lg bg-white p-3 shadow-sm">
+        <input
+          v-model="searchQuery"
+          type="text"
+          placeholder="저장된 텍스트 검색..."
+          class="w-full rounded-md border border-slate-200 px-3 py-2 text-sm outline-none transition focus:border-brand-600"
+        />
+      </section>
 
-    <section class="rounded-lg bg-white p-3 shadow-sm">
-      <div class="mb-3 flex items-center justify-between">
-        <p class="text-xs text-slate-500">최근 저장된 항목 {{ filteredHighlights.length }}개</p>
-        <button
-          type="button"
-          class="rounded border border-slate-200 px-2 py-1 text-xs text-slate-600 hover:bg-slate-100"
-        >
-          Sync Now
-        </button>
+      <section class="rounded-lg bg-white p-3 shadow-sm">
+        <div class="mb-3 flex items-center justify-between">
+          <p class="text-xs text-slate-500">최근 저장된 항목 {{ filteredHighlights.length }}개</p>
+          <button
+            type="button"
+            class="rounded border border-slate-200 px-2 py-1 text-xs text-slate-600 hover:bg-slate-100"
+          >
+            Sync Now
+          </button>
+        </div>
+
+        <div v-if="filteredHighlights.length === 0" class="py-8 text-center text-sm text-slate-500">
+          검색 결과가 없습니다.
+        </div>
+
+        <ul v-else class="space-y-3">
+          <li
+            v-for="item in filteredHighlights"
+            :key="item.id"
+            class="rounded-lg border border-slate-200 bg-white p-3"
+          >
+            <p class="mb-2 text-sm leading-relaxed text-slate-800">{{ item.text }}</p>
+            <p class="truncate text-xs font-medium text-slate-700">{{ item.title }}</p>
+            <p class="truncate text-xs text-slate-500">{{ item.url }}</p>
+
+            <div class="mt-2 flex flex-wrap gap-1">
+              <span
+                v-for="tag in item.tags"
+                :key="tag"
+                class="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-600"
+              >
+                #{{ tag }}
+              </span>
+            </div>
+
+            <div class="mt-3 flex items-center justify-between">
+              <span class="text-[11px] text-slate-500">{{ formatDate(item.createdAt) }}</span>
+              <span
+                class="rounded px-1.5 py-0.5 text-[10px] font-medium"
+                :class="
+                  item.notion?.status === 'synced'
+                    ? 'bg-emerald-50 text-emerald-600'
+                    : item.notion?.status === 'failed'
+                      ? 'bg-red-50 text-red-600'
+                      : 'bg-slate-100 text-slate-500'
+                "
+              >
+                {{ item.notion?.status ?? 'pending' }}
+              </span>
+            </div>
+
+            <div class="mt-3 flex gap-2">
+              <button
+                type="button"
+                class="rounded border border-slate-200 px-2 py-1 text-xs text-slate-700 hover:bg-slate-100"
+                @click="copyHighlight(item)"
+              >
+                복사
+              </button>
+              <button
+                type="button"
+                class="rounded border border-slate-200 px-2 py-1 text-xs text-slate-700 hover:bg-slate-100"
+                @click="openSource(item.url)"
+              >
+                원문 열기
+              </button>
+              <button
+                type="button"
+                class="rounded border border-red-200 px-2 py-1 text-xs text-red-600 hover:bg-red-50"
+                @click="removeHighlight(item.id)"
+              >
+                삭제
+              </button>
+            </div>
+          </li>
+        </ul>
+      </section>
+    </template>
+
+    <section v-else class="space-y-3">
+      <div class="rounded-lg bg-white p-3 shadow-sm">
+        <p class="mb-2 text-sm font-medium text-slate-800">Notion 연동</p>
+        <label class="mb-1 block text-xs text-slate-600">Integration Token</label>
+        <input
+          :value="settings.notionToken"
+          type="password"
+          placeholder="secret_..."
+          class="mb-3 w-full rounded-md border border-slate-200 px-3 py-2 text-sm outline-none transition focus:border-brand-600"
+          @input="updateSettings('notionToken', ($event.target as HTMLInputElement).value)"
+        />
+
+        <label class="mb-1 block text-xs text-slate-600">Database ID</label>
+        <input
+          :value="settings.notionDbId"
+          type="text"
+          placeholder="database id"
+          class="w-full rounded-md border border-slate-200 px-3 py-2 text-sm outline-none transition focus:border-brand-600"
+          @input="updateSettings('notionDbId', ($event.target as HTMLInputElement).value)"
+        />
       </div>
 
-      <div v-if="filteredHighlights.length === 0" class="py-8 text-center text-sm text-slate-500">
-        검색 결과가 없습니다.
+      <div class="rounded-lg bg-white p-3 shadow-sm">
+        <p class="mb-2 text-sm font-medium text-slate-800">동작 설정</p>
+
+        <label class="mb-2 flex items-center justify-between text-sm text-slate-700">
+          <span>자동 동기화 (Auto Sync)</span>
+          <input
+            :checked="settings.autoSync"
+            type="checkbox"
+            @change="updateSettings('autoSync', ($event.target as HTMLInputElement).checked)"
+          />
+        </label>
+
+        <label class="flex items-center justify-between text-sm text-slate-700">
+          <span>Alt + Drag에서만 팝오버 표시</span>
+          <input
+            :checked="settings.requireAlt"
+            type="checkbox"
+            @change="updateSettings('requireAlt', ($event.target as HTMLInputElement).checked)"
+          />
+        </label>
       </div>
-
-      <ul v-else class="space-y-3">
-        <li
-          v-for="item in filteredHighlights"
-          :key="item.id"
-          class="rounded-lg border border-slate-200 bg-white p-3"
-        >
-          <p class="mb-2 text-sm leading-relaxed text-slate-800">{{ item.text }}</p>
-          <p class="truncate text-xs font-medium text-slate-700">{{ item.title }}</p>
-          <p class="truncate text-xs text-slate-500">{{ item.url }}</p>
-
-          <div class="mt-2 flex flex-wrap gap-1">
-            <span
-              v-for="tag in item.tags"
-              :key="tag"
-              class="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-600"
-            >
-              #{{ tag }}
-            </span>
-          </div>
-
-          <div class="mt-3 flex items-center justify-between">
-            <span class="text-[11px] text-slate-500">{{ formatDate(item.createdAt) }}</span>
-            <span
-              class="rounded px-1.5 py-0.5 text-[10px] font-medium"
-              :class="
-                item.notion?.status === 'synced'
-                  ? 'bg-emerald-50 text-emerald-600'
-                  : item.notion?.status === 'failed'
-                    ? 'bg-red-50 text-red-600'
-                    : 'bg-slate-100 text-slate-500'
-              "
-            >
-              {{ item.notion?.status ?? 'pending' }}
-            </span>
-          </div>
-
-          <div class="mt-3 flex gap-2">
-            <button
-              type="button"
-              class="rounded border border-slate-200 px-2 py-1 text-xs text-slate-700 hover:bg-slate-100"
-              @click="copyHighlight(item)"
-            >
-              복사
-            </button>
-            <button
-              type="button"
-              class="rounded border border-slate-200 px-2 py-1 text-xs text-slate-700 hover:bg-slate-100"
-              @click="openSource(item.url)"
-            >
-              원문 열기
-            </button>
-            <button
-              type="button"
-              class="rounded border border-red-200 px-2 py-1 text-xs text-red-600 hover:bg-red-50"
-              @click="removeHighlight(item.id)"
-            >
-              삭제
-            </button>
-          </div>
-        </li>
-      </ul>
     </section>
   </main>
 </template>
