@@ -8,7 +8,11 @@ import {
 import { searchHighlights, sortHighlightsByCreatedAt } from '@/shared/storage/highlight-selectors';
 import { getSettings, saveSettings } from '@/shared/storage/settings-storage';
 import type { Highlight } from '@/shared/types/highlight';
-import type { SyncNowRequestMessage, SyncNowResult } from '@/shared/types/messages';
+import type {
+  SyncNowRequestMessage,
+  SyncNowResult,
+  TestNotionConnectionRequestMessage
+} from '@/shared/types/messages';
 import { DEFAULT_APP_SETTINGS, type AppSettings } from '@/shared/types/settings';
 
 const searchQuery = ref('');
@@ -17,6 +21,8 @@ const currentView = ref<'dashboard' | 'settings'>('dashboard');
 const settings = ref<AppSettings>({ ...DEFAULT_APP_SETTINGS });
 const syncNowMessage = ref('');
 const isSyncNowRunning = ref(false);
+const notionConnectionMessage = ref('');
+const isTestingNotionConnection = ref(false);
 const onStorageChanged = (
   changes: Record<string, chrome.storage.StorageChange>,
   areaName: string
@@ -134,6 +140,39 @@ function runSyncNow(): void {
   );
 }
 
+function runTestNotionConnection(): void {
+  if (!canUseChromeRuntime() || isTestingNotionConnection.value) {
+    return;
+  }
+
+  isTestingNotionConnection.value = true;
+  notionConnectionMessage.value = '';
+
+  const request: TestNotionConnectionRequestMessage = {
+    type: 'TEST_NOTION_CONNECTION_REQUEST'
+  };
+  chrome.runtime.sendMessage(request, (response?: { ok?: boolean; message?: string }) => {
+    isTestingNotionConnection.value = false;
+
+    if (chrome.runtime.lastError || !response) {
+      notionConnectionMessage.value = '연동 확인 실패';
+      return;
+    }
+
+    notionConnectionMessage.value = response.message ?? '연동 확인 완료';
+  });
+}
+
+function openNotionDatabase(): void {
+  const dbId = settings.value.notionDbId.trim().replaceAll('-', '');
+  if (!dbId) {
+    notionConnectionMessage.value = 'Database ID를 먼저 입력하세요.';
+    return;
+  }
+
+  window.open(`https://www.notion.so/${dbId}`, '_blank', 'noopener,noreferrer');
+}
+
 onMounted(() => {
   void loadHighlights();
   void loadSettings();
@@ -159,9 +198,10 @@ onUnmounted(() => {
     <header class="mb-4 flex items-center justify-between rounded-lg bg-white p-3 shadow-sm">
       <div class="flex items-center gap-2">
         <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-rose-100 text-rose-500">C</div>
-        <h1 class="text-lg font-semibold">
-          CatchIt {{ currentView === 'dashboard' ? 'Dashboard' : 'Settings' }}
-        </h1>
+        <div>
+          <h1 class="text-base font-semibold text-slate-800">CatchIt - 웹 텍스트 수집기</h1>
+          <p class="text-xs text-slate-500">{{ currentView === 'dashboard' ? 'Dashboard' : 'Settings' }}</p>
+        </div>
       </div>
       <button
         type="button"
@@ -291,6 +331,27 @@ onUnmounted(() => {
           class="w-full rounded-md border border-slate-200 px-3 py-2 text-sm outline-none transition focus:border-rose-500 focus:ring-1 focus:ring-rose-500"
           @input="updateSettings('notionDbId', ($event.target as HTMLInputElement).value)"
         />
+
+        <div class="mt-3 flex flex-wrap gap-2">
+          <button
+            type="button"
+            class="rounded-md bg-rose-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-rose-600"
+            :disabled="isTestingNotionConnection"
+            @click="runTestNotionConnection"
+          >
+            {{ isTestingNotionConnection ? '확인 중...' : '연동 확인' }}
+          </button>
+          <button
+            type="button"
+            class="rounded-md border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100"
+            @click="openNotionDatabase"
+          >
+            Notion DB 바로가기
+          </button>
+        </div>
+        <p v-if="notionConnectionMessage" class="mt-2 text-[11px] text-slate-500">
+          {{ notionConnectionMessage }}
+        </p>
       </div>
 
       <div class="rounded-lg bg-white p-3 shadow-sm">
