@@ -31,6 +31,11 @@
   - 검색창/빈 상태/카드 리스트/액션 버튼(복사/원문열기/삭제) 뼈대 구현
   - mock 데이터 기반 검색/삭제 인터랙션 연결
   - Notion 상태 배지 렌더링(`pending|synced|failed`) 추가
+- Dashboard 저장소 연동 반영:
+  - `chrome.storage.local` 데이터 로딩 및 최신순 정렬 연결
+  - 검색 로직을 공통 selector(`searchHighlights`)로 통합
+  - 삭제 액션 시 storage 반영 후 목록 재조회 처리
+  - dev 서버 환경(`chrome.storage` 미지원)용 mock fallback 유지
 
 ## 상태(Status)
 - `in-progress`
@@ -83,7 +88,7 @@
   - Notion 상태 배지(`pending|synced|failed`) 렌더링 연결
 - 완료 기준:
   - 로컬 데이터 기준 FR-7~FR-11 충족
-- 상태: `todo`
+- 상태: `done`
 
 ### 4) Settings 화면(일반 설정 + Notion 입력 UI)
 - 작업:
@@ -132,5 +137,5 @@
 - 상태: `todo`
 
 ## 다음(Next)
-- 1순위 실행: `3) Dashboard + 저장소 연동`
-- 이후: `4) Settings 화면(일반 설정 + Notion 입력 UI)`
+- 1순위 실행: `4) Settings 화면(일반 설정 + Notion 입력 UI)`
+- 이후: `5) Content Script 드래그 감지 + 팝오버`
