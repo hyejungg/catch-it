@@ -41,6 +41,8 @@
 - 성공 시 `notion.status = synced`, `pageId`, `syncedAt`이 반영된다.
 - 설정 누락 시 `failed` 상태와 오류 메시지가 기록된다.
 - 401/403/429 응답 시 오류 메시지가 구분되어 기록된다.
+- `연동 확인(Test Connection)` 버튼으로 설정값 유효성을 즉시 확인할 수 있다.
+- `Notion DB 바로가기(Open Notion)` 버튼으로 대상 데이터베이스 페이지가 열린다.
 
 ### 5) 상태 갱신/반영
 - content-script 저장 후 Dashboard가 새로고침 없이 갱신된다.
