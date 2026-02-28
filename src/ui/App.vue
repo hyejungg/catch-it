@@ -27,27 +27,6 @@ const onStorageChanged = (
 
   void loadHighlights();
 };
-const mockHighlights: Highlight[] = [
-  {
-    id: 'sample-1',
-    text: '현재 페이지 컨텍스트(링크/제목/문맥)가 빠지면 재사용성이 크게 떨어진다.',
-    url: 'https://example.com/blog/future-of-ai',
-    title: '왜 우리는 항상 정보를 잃어버릴까?',
-    createdAt: Date.now() - 1000 * 60 * 30,
-    tags: ['ux', 'context'],
-    notion: { status: 'synced' }
-  },
-  {
-    id: 'sample-2',
-    text: '드래그 한 번으로 텍스트와 URL, 제목, 저장 시간을 함께 수집한다.',
-    url: 'https://example.com/blog/future-of-ai',
-    title: '왜 우리는 항상 정보를 잃어버릴까?',
-    createdAt: Date.now() - 1000 * 60 * 5,
-    tags: ['workflow'],
-    notion: { status: 'pending' }
-  }
-];
-
 function canUseChromeStorage(): boolean {
   return typeof chrome !== 'undefined' && Boolean(chrome.storage?.local);
 }
@@ -62,7 +41,7 @@ function toggleView(): void {
 
 async function loadHighlights(): Promise<void> {
   if (!canUseChromeStorage()) {
-    highlights.value = sortHighlightsByCreatedAt(mockHighlights, 'desc');
+    highlights.value = [];
     return;
   }
 
