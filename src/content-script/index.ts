@@ -1,10 +1,12 @@
 const POPOVER_ID = 'catchit-selection-popover';
 const STYLE_ID = 'catchit-selection-style';
+const PERSISTENT_HIGHLIGHT_NAME = 'catchit-selection';
 const MIN_SELECTION_LENGTH = 3;
 const SETTINGS_STORAGE_KEY = 'settings';
 
 let currentSelectionText = '';
 let isAltPressed = false;
+let currentSelectionRange: Range | null = null;
 
 interface AppSettings {
   requireAlt: boolean;
@@ -46,6 +48,7 @@ function removePopover(): void {
   if (existing) {
     existing.remove();
   }
+  clearPersistentSelectionHighlight();
 }
 
 function clearSelection(): void {
@@ -68,8 +71,45 @@ function ensureSelectionStyle(): void {
       background: #fecdd3;
       color: #881337;
     }
+    ::highlight(catchit-selection) {
+      background: #fecdd3;
+      color: #881337;
+    }
   `;
   document.documentElement.appendChild(style);
+}
+
+function setPersistentSelectionHighlight(range: Range): void {
+  currentSelectionRange = range.cloneRange();
+
+  const cssAny = CSS as unknown as {
+    highlights?: {
+      set: (name: string, highlight: unknown) => void;
+    };
+  };
+  const highlightCtor = (globalThis as unknown as { Highlight?: new (range: Range) => unknown })
+    .Highlight;
+
+  if (!cssAny.highlights || !highlightCtor) {
+    return;
+  }
+
+  cssAny.highlights.set(PERSISTENT_HIGHLIGHT_NAME, new highlightCtor(currentSelectionRange));
+}
+
+function clearPersistentSelectionHighlight(): void {
+  currentSelectionRange = null;
+
+  const cssAny = CSS as unknown as {
+    highlights?: {
+      delete: (name: string) => void;
+    };
+  };
+  if (!cssAny.highlights) {
+    return;
+  }
+
+  cssAny.highlights.delete(PERSISTENT_HIGHLIGHT_NAME);
 }
 
 function createPopover(x: number, y: number): HTMLDivElement {
@@ -202,6 +242,7 @@ async function handleMouseUp(event: MouseEvent): Promise<void> {
     }
 
     currentSelectionText = text;
+    setPersistentSelectionHighlight(range);
     createPopover(rect.left + rect.width / 2, rect.top);
   } catch (error) {
     console.debug('[CatchIt] handleMouseUp failed:', error);
