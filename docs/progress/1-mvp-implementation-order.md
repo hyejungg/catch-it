@@ -23,6 +23,10 @@
   - Vue3 + Vite + TypeScript + Tailwind + PrimeVue + ESLint/Prettier 기본 구성 완료
   - MV3 `manifest.json` + `background/content/ui` 엔트리 구성 완료
   - 개발 서버 기본 경로 확인을 위한 `index.html` 엔트리 추가
+- 데이터 레이어 진행 반영:
+  - `Highlight` 타입 확장(`HighlightCreateInput`, `NotionSyncMetadata`)
+  - `chrome.storage.local` 기반 CRUD 유틸(`add/get/update/upsert/delete/clear`) 구현
+  - 검색/정렬/태그 필터 selector 유틸 추가
 
 ## 상태(Status)
 - `in-progress`
@@ -56,7 +60,7 @@
   - 검색/정렬을 위한 기본 selector 함수 작성
 - 완료 기준:
   - 저장/조회/삭제/목록 반환 유닛 단위 검증 가능
-- 상태: `todo`
+- 상태: `done`
 
 ### 2) Dashboard 검색/리스트 뼈대 (UI 단독)
 - 작업:
@@ -124,5 +128,5 @@
 - 상태: `todo`
 
 ## 다음(Next)
-- 1순위 실행: `1) 공통 데이터 모델/저장소 레이어`
-- 이후: `2) Dashboard 검색/리스트 뼈대` → `3) Dashboard + 저장소 연동`
+- 1순위 실행: `2) Dashboard 검색/리스트 뼈대 (UI 단독)`
+- 이후: `3) Dashboard + 저장소 연동`
