@@ -27,6 +27,10 @@
   - `Highlight` 타입 확장(`HighlightCreateInput`, `NotionSyncMetadata`)
   - `chrome.storage.local` 기반 CRUD 유틸(`add/get/update/upsert/delete/clear`) 구현
   - 검색/정렬/태그 필터 selector 유틸 추가
+- Dashboard UI 진행 반영:
+  - 검색창/빈 상태/카드 리스트/액션 버튼(복사/원문열기/삭제) 뼈대 구현
+  - mock 데이터 기반 검색/삭제 인터랙션 연결
+  - Notion 상태 배지 렌더링(`pending|synced|failed`) 추가
 
 ## 상태(Status)
 - `in-progress`
@@ -70,7 +74,7 @@
 - 완료 기준:
   - mockup과 유사한 리스트/검색 인터랙션 동작
   - 저장소 연동 전에도 UI 플로우 검증 가능
-- 상태: `todo`
+- 상태: `done`
 
 ### 3) Dashboard + 저장소 연동
 - 작업:
@@ -128,5 +132,5 @@
 - 상태: `todo`
 
 ## 다음(Next)
-- 1순위 실행: `2) Dashboard 검색/리스트 뼈대 (UI 단독)`
-- 이후: `3) Dashboard + 저장소 연동`
+- 1순위 실행: `3) Dashboard + 저장소 연동`
+- 이후: `4) Settings 화면(일반 설정 + Notion 입력 UI)`
