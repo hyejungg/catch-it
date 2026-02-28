@@ -1,9 +1,12 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
+import { deleteHighlight, getHighlights } from '@/shared/storage/highlight-storage';
+import { searchHighlights, sortHighlightsByCreatedAt } from '@/shared/storage/highlight-selectors';
 import type { Highlight } from '@/shared/types/highlight';
 
 const searchQuery = ref('');
-const highlights = ref<Highlight[]>([
+const highlights = ref<Highlight[]>([]);
+const mockHighlights: Highlight[] = [
   {
     id: 'sample-1',
     text: '현재 페이지 컨텍스트(링크/제목/문맥)가 빠지면 재사용성이 크게 떨어진다.',
@@ -22,22 +25,24 @@ const highlights = ref<Highlight[]>([
     tags: ['workflow'],
     notion: { status: 'pending' }
   }
-]);
+];
 
-const filteredHighlights = computed(() => {
-  const query = searchQuery.value.trim().toLowerCase();
-  if (!query) {
-    return highlights.value;
+function canUseChromeStorage(): boolean {
+  return typeof chrome !== 'undefined' && Boolean(chrome.storage?.local);
+}
+
+async function loadHighlights(): Promise<void> {
+  if (!canUseChromeStorage()) {
+    highlights.value = sortHighlightsByCreatedAt(mockHighlights, 'desc');
+    return;
   }
 
-  return highlights.value.filter((item) => {
-    return (
-      item.text.toLowerCase().includes(query) ||
-      item.title.toLowerCase().includes(query) ||
-      item.url.toLowerCase().includes(query) ||
-      item.tags.some((tag) => tag.toLowerCase().includes(query))
-    );
-  });
+  const stored = await getHighlights();
+  highlights.value = sortHighlightsByCreatedAt(stored, 'desc');
+}
+
+const filteredHighlights = computed(() => {
+  return searchHighlights(highlights.value, searchQuery.value);
 });
 
 function formatDate(createdAt: number): string {
@@ -59,8 +64,24 @@ function openSource(url: string): void {
 }
 
 function removeHighlight(id: string): void {
-  highlights.value = highlights.value.filter((item) => item.id !== id);
+  void (async () => {
+    if (!canUseChromeStorage()) {
+      highlights.value = highlights.value.filter((item) => item.id !== id);
+      return;
+    }
+
+    const deleted = await deleteHighlight(id);
+    if (!deleted) {
+      return;
+    }
+
+    await loadHighlights();
+  })();
 }
+
+onMounted(() => {
+  void loadHighlights();
+});
 </script>
 
 <template>
