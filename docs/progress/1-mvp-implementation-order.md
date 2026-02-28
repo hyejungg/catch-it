@@ -85,6 +85,11 @@
 - 추가 요청 사항 7차 반영:
   - background에 Notion 동기화 요청/응답/오류 로그 추가
   - 상태 코드에서 `pending/synced` 레거시 분기 제거(`ready/sync/failed`만 사용)
+- 추가 요청 사항 8차 반영:
+  - Notion DB 속성명을 고정값이 아닌 스키마 기반으로 자동 매핑
+- 추가 요청 사항 9차 반영:
+  - Settings Notion 안내에 템플릿 복제 링크 추가
+  - 태그 입력 시작 시 하이라이트 영역 축소 이슈 보정(선택 직후 표시 고정)
 
 ## 상태(Status)
 - `in-progress`
@@ -203,3 +208,5 @@
   - Sync 상태 표기 `ready / sync / failed` 적용
   - Notion 동기화 디버깅 로그 추가
   - `pending/synced` 레거시 상태 코드 제거
+  - Notion 템플릿 복제 링크 안내 추가
+  - 태그 입력 중 하이라이트 영역 축소 현상 보정
