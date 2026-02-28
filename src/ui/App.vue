@@ -431,6 +431,17 @@ onUnmounted(() => {
             />
           </button>
         </label>
+
+        <div class="mt-4 border-t border-slate-100 pt-3 text-center">
+          <a
+            href="https://buymeacoffee.com/hyejunggdet"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inline-flex items-center rounded-md border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-medium text-rose-700 hover:bg-rose-100"
+          >
+            Buy me a coffee
+          </a>
+        </div>
       </div>
     </section>
   </main>

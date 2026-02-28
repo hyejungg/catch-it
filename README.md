@@ -85,7 +85,7 @@ npm run build
 
 ## 출시 체크리스트 (Chrome Web Store)
 1. Notion 토큰 재발급(기존 노출 토큰 폐기)
-2. 개인정보처리방침 URL 준비 및 스토어 등록 정보 입력
+2. 개인정보처리방침 URL 등록: `https://catch-it-lending.hyejungg.me/`
 3. `npm run build` 후 `dist` 폴더 기준 최종 QA
 4. 스토어 업로드용 ZIP 생성(`dist` 내부 파일만 압축)
 5. CWS Developer Dashboard에 업로드 후 심사 제출
