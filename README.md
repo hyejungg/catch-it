@@ -59,7 +59,7 @@ npm run build
 ## Notion 동기화 설정
 1. 확장 UI에서 `설정` 이동
 2. `Integration Token`, `Database ID` 입력
-   - 권장 템플릿: `https://hyejung.notion.site/31524f69b47280bc8ba8da1da05f968e?v=31524f69b472805eb47f000cf0dda711&source=copy_link` 복제 후 연동
+   - 권장 템플릿: `https://www.notion.so/hyejung/e8124f69b472835095ca81add015a1fc?v=cb024f69b47283e08bd5889aecb68f50&source=copy_link` 복제 후 연동
    - Integration Token: `https://www.notion.so/my-integrations`에서 Internal Integration 생성 후 Secret 복사
    - Database ID: 대상 DB 페이지 URL의 마지막 32자리 식별자 복사
    - 대상 DB에 해당 Integration을 `Connections`로 연결

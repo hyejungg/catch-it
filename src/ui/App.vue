@@ -343,7 +343,7 @@ onUnmounted(() => {
           <p class="mt-1">
             권장: 아래 템플릿을 먼저 복제한 뒤 Notion API 연동
             <a
-              href="https://hyejung.notion.site/31524f69b47280bc8ba8da1da05f968e?v=31524f69b472805eb47f000cf0dda711&source=copy_link"
+              href="https://www.notion.so/hyejung/e8124f69b472835095ca81add015a1fc?v=cb024f69b47283e08bd5889aecb68f50&source=copy_link"
               target="_blank"
               rel="noopener noreferrer"
               class="text-rose-600 underline"
