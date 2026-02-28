@@ -10,8 +10,7 @@
     "type": "module"
   },
   "action": {
-    "default_title": "CatchIt",
-    "default_popup": "dashboard.html"
+    "default_title": "CatchIt"
   },
   "side_panel": {
     "default_path": "sidepanel.html"

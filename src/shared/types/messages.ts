@@ -21,3 +21,7 @@ export interface SyncNowResult {
   synced: number;
   failed: number;
 }
+
+export interface TestNotionConnectionRequestMessage {
+  type: 'TEST_NOTION_CONNECTION_REQUEST';
+}

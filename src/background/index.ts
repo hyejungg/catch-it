@@ -9,7 +9,8 @@ import type { Highlight } from '@/shared/types/highlight';
 import type {
   SaveHighlightRequestMessage,
   SyncNowRequestMessage,
-  SyncNowResult
+  SyncNowResult,
+  TestNotionConnectionRequestMessage
 } from '@/shared/types/messages';
 
 function isSaveHighlightRequestMessage(message: unknown): message is SaveHighlightRequestMessage {
@@ -33,6 +34,17 @@ function isSyncNowRequestMessage(message: unknown): message is SyncNowRequestMes
 
   const candidate = message as Partial<SyncNowRequestMessage>;
   return candidate.type === 'SYNC_NOW_REQUEST';
+}
+
+function isTestNotionConnectionRequestMessage(
+  message: unknown
+): message is TestNotionConnectionRequestMessage {
+  if (!message || typeof message !== 'object') {
+    return false;
+  }
+
+  const candidate = message as Partial<TestNotionConnectionRequestMessage>;
+  return candidate.type === 'TEST_NOTION_CONNECTION_REQUEST';
 }
 
 function mapNotionError(status: number, fallback: string): string {
@@ -159,8 +171,60 @@ async function syncNow(): Promise<SyncNowResult> {
   };
 }
 
+async function testNotionConnection(): Promise<{ ok: boolean; message: string }> {
+  const settings = await getSettings();
+  if (!settings.notionToken || !settings.notionDbId) {
+    return {
+      ok: false,
+      message: 'Notion 설정 누락: 토큰 또는 Database ID를 확인하세요.'
+    };
+  }
+
+  const response = await fetch(
+    `https://api.notion.com/v1/databases/${settings.notionDbId.replaceAll('-', '')}`,
+    {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${settings.notionToken}`,
+        'Notion-Version': '2022-06-28'
+      }
+    }
+  );
+
+  if (!response.ok) {
+    const raw = await response.text();
+    let parsed: { message?: string } = {};
+    if (raw) {
+      try {
+        parsed = JSON.parse(raw) as { message?: string };
+      } catch {
+        parsed = {};
+      }
+    }
+
+    return {
+      ok: false,
+      message: mapNotionError(response.status, parsed.message ?? '연동 확인 실패')
+    };
+  }
+
+  return {
+    ok: true,
+    message: 'Notion 연동 확인 성공'
+  };
+}
+
 chrome.runtime.onInstalled.addListener(() => {
   console.log('CatchIt background initialized');
+  if (chrome.sidePanel?.setPanelBehavior) {
+    void chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
+  }
+});
+
+chrome.runtime.onStartup.addListener(() => {
+  if (chrome.sidePanel?.setPanelBehavior) {
+    void chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
+  }
 });
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
@@ -203,6 +267,20 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       } catch (error) {
         console.error('[CatchIt] sync now failed:', error);
         sendResponse({ ok: false });
+      }
+    })();
+
+    return true;
+  }
+
+  if (isTestNotionConnectionRequestMessage(message)) {
+    void (async () => {
+      try {
+        const result = await testNotionConnection();
+        sendResponse(result);
+      } catch (error) {
+        console.error('[CatchIt] notion connection test failed:', error);
+        sendResponse({ ok: false, message: '연동 확인 중 오류 발생' });
       }
     })();
 
