@@ -72,3 +72,30 @@
 - 실패 항목:
 - 재현 절차:
 - 비고:
+
+## 최근 실행 결과 (Playwright)
+- 실행 날짜: 2026-02-28
+- 실행자: Codex (Playwright MCP)
+- 대상 커밋: `085cc73`
+- 브라우저/환경: Playwright Chromium + `vite preview` (`http://127.0.0.1:4173`)
+- 결과 요약: `partial`
+
+### 확인 완료
+- Dashboard 기본 진입 및 헤더 렌더링 확인
+  - `CatchIt - 웹 텍스트 수집기`
+  - `Dashboards` -> `Settings` 전환
+- Settings 화면 요소 렌더링 확인
+  - Token/Database ID 입력 필드
+  - `연동 확인`, `Notion DB 바로가기` 버튼
+  - 템플릿 복제 링크 노출
+- Notion API 접근성 확인 (Playwright `page.request`)
+  - DB ID `66a24f69b4728257835f01936989cce1`: `GET /v1/databases/{id}` 200, `POST /v1/databases/{id}/query` 200
+  - DB ID `31524f69b47280bc8ba8da1da05f968e`: `GET /v1/databases/{id}` 200, `POST /v1/databases/{id}/query` 200
+
+### 관찰 사항
+- 두 DB 모두 query 결과 건수 `0`
+- 이 경우 `연동 확인` 재평가 시 `sync` 매칭 대상이 없어 전체가 `ready`로 보일 수 있음
+
+### 제한 사항
+- Playwright 환경에서는 Chrome 확장(runtime/background) end-to-end를 완전 대체하지 못함
+- `연동 확인` 버튼 클릭 후 실제 background 로직 실행 검증은 Chrome 확장 로드 환경에서 별도 수동 QA 필요
