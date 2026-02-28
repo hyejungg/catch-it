@@ -1,11 +1,44 @@
-import { getSettings } from '@/shared/storage/settings-storage';
-import type { SaveHighlightRequestMessage } from '@/shared/types/messages';
-
 const POPOVER_ID = 'catchit-selection-popover';
 const MIN_SELECTION_LENGTH = 3;
+const SETTINGS_STORAGE_KEY = 'settings';
 
 let currentSelectionText = '';
 let isAltPressed = false;
+
+interface AppSettings {
+  requireAlt: boolean;
+  autoSync: boolean;
+  notionToken: string;
+  notionDbId: string;
+}
+
+interface SaveHighlightRequestMessage {
+  type: 'HIGHLIGHT_SAVE_REQUEST';
+  payload: {
+    text: string;
+    url: string;
+    title: string;
+    tags: string[];
+    contextBefore?: string;
+    contextAfter?: string;
+  };
+}
+
+const DEFAULT_APP_SETTINGS: AppSettings = {
+  requireAlt: false,
+  autoSync: true,
+  notionToken: '',
+  notionDbId: ''
+};
+
+async function getSettings(): Promise<AppSettings> {
+  const data = await chrome.storage.local.get(SETTINGS_STORAGE_KEY);
+  const stored = (data[SETTINGS_STORAGE_KEY] as Partial<AppSettings> | undefined) ?? {};
+  return {
+    ...DEFAULT_APP_SETTINGS,
+    ...stored
+  };
+}
 
 function removePopover(): void {
   const existing = document.getElementById(POPOVER_ID);
