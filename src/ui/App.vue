@@ -8,12 +8,15 @@ import {
 import { searchHighlights, sortHighlightsByCreatedAt } from '@/shared/storage/highlight-selectors';
 import { getSettings, saveSettings } from '@/shared/storage/settings-storage';
 import type { Highlight } from '@/shared/types/highlight';
+import type { SyncNowRequestMessage, SyncNowResult } from '@/shared/types/messages';
 import { DEFAULT_APP_SETTINGS, type AppSettings } from '@/shared/types/settings';
 
 const searchQuery = ref('');
 const highlights = ref<Highlight[]>([]);
 const currentView = ref<'dashboard' | 'settings'>('dashboard');
 const settings = ref<AppSettings>({ ...DEFAULT_APP_SETTINGS });
+const syncNowMessage = ref('');
+const isSyncNowRunning = ref(false);
 const onStorageChanged = (
   changes: Record<string, chrome.storage.StorageChange>,
   areaName: string
@@ -47,6 +50,10 @@ const mockHighlights: Highlight[] = [
 
 function canUseChromeStorage(): boolean {
   return typeof chrome !== 'undefined' && Boolean(chrome.storage?.local);
+}
+
+function canUseChromeRuntime(): boolean {
+  return typeof chrome !== 'undefined' && Boolean(chrome.runtime?.sendMessage);
 }
 
 function toggleView(): void {
@@ -123,6 +130,31 @@ function removeHighlight(id: string): void {
   })();
 }
 
+function runSyncNow(): void {
+  if (!canUseChromeRuntime() || isSyncNowRunning.value) {
+    return;
+  }
+
+  isSyncNowRunning.value = true;
+  syncNowMessage.value = '';
+
+  const request: SyncNowRequestMessage = { type: 'SYNC_NOW_REQUEST' };
+  chrome.runtime.sendMessage(
+    request,
+    (response?: { ok?: boolean; result?: SyncNowResult }) => {
+      isSyncNowRunning.value = false;
+
+      if (chrome.runtime.lastError || !response?.ok || !response.result) {
+        syncNowMessage.value = 'Sync now 실패';
+        return;
+      }
+
+      const { total, synced, failed } = response.result;
+      syncNowMessage.value = `동기화 ${synced}/${total} (실패 ${failed})`;
+    }
+  );
+}
+
 onMounted(() => {
   void loadHighlights();
   void loadSettings();
@@ -184,10 +216,13 @@ onUnmounted(() => {
           <button
             type="button"
             class="rounded px-2 py-1 text-xs font-medium text-rose-500 hover:bg-rose-50"
+            :disabled="isSyncNowRunning"
+            @click="runSyncNow"
           >
-            Sync Now
+            {{ isSyncNowRunning ? 'Syncing...' : 'Sync Now' }}
           </button>
         </div>
+        <p v-if="syncNowMessage" class="mb-2 text-[11px] text-slate-500">{{ syncNowMessage }}</p>
 
         <div v-if="filteredHighlights.length === 0" class="py-8 text-center text-sm text-slate-500">
           검색 결과가 없습니다.
