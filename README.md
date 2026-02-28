@@ -1,0 +1,77 @@
+# CatchIt
+
+웹에서 드래그한 텍스트를 빠르게 저장하고, 필요하면 Notion DB로 동기화하는 Chrome Extension(MV3)입니다.
+
+## 주요 기능
+- 텍스트 드래그 시 팝오버(저장/취소) 표시
+- 로컬 저장(`chrome.storage.local`) 기반 하이라이트 관리
+- Dashboard 목록/검색/복사/원문 열기/삭제
+- Settings에서 수집/동기화 옵션 관리
+  - `Alt + Drag` 수집 옵션
+  - Notion Token / Database ID 저장
+  - Auto Sync 토글
+- Notion Push Sync
+  - 저장 시 자동 동기화(옵션)
+  - `Sync Now` 배치 동기화
+  - 상태 기록(`pending`, `synced`, `failed`)
+
+## 기술 스택
+- Vue 3 + TypeScript + Vite
+- Tailwind CSS
+- Chrome Extension Manifest V3
+
+## 로컬 개발
+### 1) 설치
+```bash
+npm install
+```
+
+### 2) 빌드
+```bash
+npm run build
+```
+
+### 3) (선택) 개발 서버
+```bash
+npm run dev
+```
+
+## Chrome 확장 프로그램으로 실행
+### 1) 확장 빌드
+```bash
+npm run build
+```
+
+### 2) 확장 로드
+1. Chrome에서 `chrome://extensions` 접속
+2. 우상단 `개발자 모드` ON
+3. `압축해제된 확장 프로그램을 로드합니다` 클릭
+4. 프로젝트의 `dist` 폴더 선택
+   - `/Users/kimhyejeong/Documents/projects_code/vue/catch-it/dist`
+
+### 3) 기본 동작 확인
+1. 일반 웹페이지에서 텍스트 드래그
+2. 팝오버에서 `저장`
+3. 확장 아이콘을 눌러 Dashboard에서 항목 생성 확인
+
+## Notion 동기화 설정
+1. 확장 UI에서 `설정` 이동
+2. `Integration Token`, `Database ID` 입력
+3. `Auto Sync` ON 후 저장 테스트
+4. Dashboard에서 `Sync Now` 클릭해 동기화 결과 확인
+
+## QA
+- 수동 QA 항목은 아래 문서 참고:
+  - `docs/qa/1-mvp-qa-checklist.md`
+
+## 스크립트
+- `npm run dev`: Vite 개발 서버
+- `npm run build`: 프로덕션 빌드(`dist` 생성)
+- `npm run lint`: ESLint 검사
+- `npm run lint:fix`: ESLint 자동 수정
+- `npm run format`: Prettier 포맷
+- `npm run typecheck`: 타입 검사
+
+## 현재 상태
+- MVP 구현 단계 완료
+- 다음 단계: QA 체크리스트 실행 후 이슈 보완
