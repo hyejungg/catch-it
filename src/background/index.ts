@@ -73,6 +73,62 @@ function toISOStringFromTimestamp(timestamp: number): string {
   return new Date(timestamp).toISOString();
 }
 
+type NotionPropertyType = 'title' | 'rich_text' | 'url' | 'date' | 'multi_select';
+
+interface NotionDatabaseProperty {
+  id: string;
+  type: NotionPropertyType | string;
+  name?: string;
+}
+
+interface NotionDatabaseInfo {
+  id: string;
+  title?: Array<{ plain_text?: string }>;
+  properties: Record<string, NotionDatabaseProperty>;
+}
+
+function normalizeNotionId(value: string): string {
+  return value.trim().replaceAll('-', '');
+}
+
+async function getNotionDatabaseInfo(
+  notionToken: string,
+  notionDbId: string
+): Promise<NotionDatabaseInfo> {
+  const response = await fetch(`https://api.notion.com/v1/databases/${normalizeNotionId(notionDbId)}`, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${notionToken}`,
+      'Notion-Version': '2022-06-28'
+    }
+  });
+
+  const raw = await response.text();
+  let parsed: NotionDatabaseInfo | { message?: string } = { properties: {}, id: '' };
+  if (raw) {
+    try {
+      parsed = JSON.parse(raw) as NotionDatabaseInfo | { message?: string };
+    } catch {
+      parsed = { properties: {}, id: '' };
+    }
+  }
+
+  if (!response.ok || !('properties' in parsed)) {
+    const message = 'message' in parsed ? parsed.message : 'Database 조회 실패';
+    throw new Error(mapNotionError(response.status, message ?? 'Database 조회 실패'));
+  }
+
+  return parsed;
+}
+
+function findPropertyNameByType(
+  properties: Record<string, NotionDatabaseProperty>,
+  type: NotionPropertyType
+): string | null {
+  const entry = Object.entries(properties).find(([, property]) => property.type === type);
+  return entry ? entry[0] : null;
+}
+
 async function createNotionPage(
   highlight: Highlight,
   notionToken: string,
@@ -85,21 +141,55 @@ async function createNotionPage(
     tagsCount: highlight.tags.length
   });
 
-  const body = {
-    parent: { database_id: notionDbId },
-    properties: {
-      Name: {
-        title: [{ text: { content: highlight.title || 'Untitled' } }]
-      },
-      Quote: {
-        rich_text: [{ text: { content: highlight.text.slice(0, 1900) } }]
-      },
-      URL: { url: highlight.url },
-      SavedAt: { date: { start: toISOStringFromTimestamp(highlight.createdAt) } },
-      Tags: {
-        multi_select: highlight.tags.map((tag) => ({ name: tag }))
-      }
+  const database = await getNotionDatabaseInfo(notionToken, notionDbId);
+  const titleProperty = findPropertyNameByType(database.properties, 'title');
+  const richTextProperty = findPropertyNameByType(database.properties, 'rich_text');
+  const urlProperty = findPropertyNameByType(database.properties, 'url');
+  const dateProperty = findPropertyNameByType(database.properties, 'date');
+  const tagsProperty = findPropertyNameByType(database.properties, 'multi_select');
+
+  logSync('Notion database schema mapped', {
+    highlightId: highlight.id,
+    titleProperty,
+    richTextProperty,
+    urlProperty,
+    dateProperty,
+    tagsProperty
+  });
+
+  if (!titleProperty) {
+    throw new Error('Notion DB에 title 타입 속성이 없습니다.');
+  }
+
+  const properties: Record<string, unknown> = {
+    [titleProperty]: {
+      title: [{ text: { content: highlight.title || 'Untitled' } }]
     }
+  };
+
+  if (richTextProperty) {
+    properties[richTextProperty] = {
+      rich_text: [{ text: { content: highlight.text.slice(0, 1900) } }]
+    };
+  }
+
+  if (urlProperty) {
+    properties[urlProperty] = { url: highlight.url };
+  }
+
+  if (dateProperty) {
+    properties[dateProperty] = { date: { start: toISOStringFromTimestamp(highlight.createdAt) } };
+  }
+
+  if (tagsProperty) {
+    properties[tagsProperty] = {
+      multi_select: highlight.tags.map((tag) => ({ name: tag }))
+    };
+  }
+
+  const body = {
+    parent: { database_id: normalizeNotionId(notionDbId) },
+    properties
   };
 
   const response = await fetch('https://api.notion.com/v1/pages', {

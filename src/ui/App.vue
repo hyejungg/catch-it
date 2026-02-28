@@ -7,7 +7,7 @@ import {
 } from '@/shared/storage/highlight-storage';
 import { searchHighlights, sortHighlightsByCreatedAt } from '@/shared/storage/highlight-selectors';
 import { getSettings, saveSettings } from '@/shared/storage/settings-storage';
-import type { Highlight } from '@/shared/types/highlight';
+import { normalizeNotionSyncStatus, type Highlight } from '@/shared/types/highlight';
 import type {
   SyncNowRequestMessage,
   SyncNowResult,
@@ -89,6 +89,10 @@ function formatDate(createdAt: number): string {
     hour: '2-digit',
     minute: '2-digit'
   }).format(createdAt);
+}
+
+function getNotionStatus(item: Highlight): 'ready' | 'sync' | 'failed' {
+  return normalizeNotionSyncStatus(item.notion?.status);
 }
 
 async function copyHighlight(item: Highlight): Promise<void> {
@@ -274,14 +278,14 @@ onUnmounted(() => {
               <span
                 class="rounded px-1.5 py-0.5 text-[10px] font-medium"
                 :class="
-                  item.notion?.status === 'synced'
+                  getNotionStatus(item) === 'sync'
                     ? 'bg-emerald-50 text-emerald-600'
-                    : item.notion?.status === 'failed'
+                    : getNotionStatus(item) === 'failed'
                       ? 'bg-red-50 text-red-600'
                       : 'bg-slate-100 text-slate-500'
                 "
               >
-                {{ item.notion?.status ?? 'pending' }}
+                {{ getNotionStatus(item) }}
               </span>
             </div>
 
@@ -336,6 +340,17 @@ onUnmounted(() => {
 
         <div class="mt-3 rounded-md border border-rose-100 bg-rose-50/50 p-2 text-[11px] text-slate-600">
           <p class="font-medium text-slate-700">Notion 키/DB ID 가져오는 방법</p>
+          <p class="mt-1">
+            권장: 아래 템플릿을 먼저 복제한 뒤 Notion API 연동
+            <a
+              href="https://hyejung.notion.site/31524f69b47280bc8ba8da1da05f968e?v=31524f69b472805eb47f000cf0dda711&source=copy_link"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-rose-600 underline"
+            >
+              템플릿 복제 링크
+            </a>
+          </p>
           <p class="mt-1">
             1) Integration Token: Notion
             <a
