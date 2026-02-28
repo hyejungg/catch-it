@@ -49,6 +49,11 @@
   - `HIGHLIGHT_SAVE_REQUEST` 메시지 타입 가드 및 수신 처리 구현
   - background에서 highlight 생성/저장 처리(`addHighlight`) 연결
   - dashboard에서 `chrome.storage.onChanged` 구독으로 저장 즉시 목록 갱신
+- 스타일 보정 반영:
+  - Dashboard/Settings 주요 액센트를 `rose` 계열로 통일
+  - 검색/입력 focus ring을 `rose`로 수정
+  - checkbox를 목업과 유사한 토글 스위치 버튼 UI로 교체
+  - content 팝오버 저장 버튼 색상을 `rose`로 조정
 
 ## 상태(Status)
 - `in-progress`
