@@ -63,6 +63,10 @@
 - 품질/마감 반영:
   - Dashboard UI 더미 데이터(`mockHighlights`) 제거
   - QA 체크리스트 문서 추가: `docs/qa/1-mvp-qa-checklist.md`
+- 추가 요청 사항 1차 반영:
+  - 확장 아이콘 클릭 시 side panel 기본 오픈 동작 적용
+  - 헤더 타이틀을 `CatchIt - 웹 텍스트 수집기` + 서브타이틀 구조로 변경
+  - Settings에 `연동 확인`/`Notion DB 바로가기` 버튼 및 상태 메시지 추가
 
 ## 상태(Status)
 - `in-progress`
@@ -168,13 +172,8 @@
 - QA 실행 결과 기반 버그 수정/우선순위 재정의
 
 ## 추가 요청 사항(다음 진행 전 반영)
-- 확장 아이콘 클릭 시 표시되는 화면 폭이 좁은 문제 개선
-  - 우선순위안 1: Side Panel 형태를 기본 사용하도록 조정
-  - 대안: Popup 유지 시 폭을 충분히 넓혀 가독성 개선
-- 헤더 타이틀 구조 통일
-  - 메인 타이틀은 항상 `CatchIt - 웹 텍스트 수집기`로 고정
-  - 화면별 서브타이틀은 별도 라인에 `Dashboard` / `Settings`로 표시
-- Notion 연동 확인/이동 액션 추가
-  - Settings에 `연동 확인(Test Connection)` 버튼 추가
-  - 성공/실패 피드백(상태 텍스트 또는 토스트) 표시
-  - `Notion DB 바로가기(Open Notion)` 버튼 추가하여 대상 DB 페이지로 이동
+- 완료:
+  - 확장 아이콘 클릭 시 Side Panel 기본 오픈 동작 적용
+  - 헤더 타이틀 구조를 `CatchIt - 웹 텍스트 수집기` + `Dashboard/Settings`로 통일
+  - Settings에 `연동 확인(Test Connection)` 버튼 추가 및 상태 메시지 표시
+  - `Notion DB 바로가기(Open Notion)` 버튼 추가
