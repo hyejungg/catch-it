@@ -1,0 +1,26 @@
+{
+  "manifest_version": 3,
+  "name": "CatchIt",
+  "description": "Drag and save web highlights with optional Notion push sync.",
+  "version": "0.1.0",
+  "permissions": ["storage", "sidePanel", "tabs"],
+  "host_permissions": ["<all_urls>", "https://api.notion.com/*"],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "CatchIt",
+    "default_popup": "dashboard.html"
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content-script.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
