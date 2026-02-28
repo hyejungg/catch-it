@@ -387,7 +387,9 @@ async function resetAllHighlightsReadyOnDbChange(): Promise<number> {
   const next = highlights.map((highlight) => ({
     ...highlight,
     notion: {
-      status: 'ready' as const
+      ...highlight.notion,
+      status: 'ready' as const,
+      error: undefined
     }
   }));
   await saveHighlights(next);
@@ -425,7 +427,9 @@ async function reconcileHighlightSyncStatesByDatabase(
     return {
       ...highlight,
       notion: {
-        status: 'ready' as const
+        ...highlight.notion,
+        status: 'ready' as const,
+        error: undefined
       }
     };
   });
