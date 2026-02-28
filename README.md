@@ -82,3 +82,18 @@ npm run build
 ## 현재 상태
 - MVP 구현 단계 완료
 - 다음 단계: QA 체크리스트 실행 후 이슈 보완
+
+## 출시 체크리스트 (Chrome Web Store)
+1. Notion 토큰 재발급(기존 노출 토큰 폐기)
+2. 개인정보처리방침 URL 준비 및 스토어 등록 정보 입력
+3. `npm run build` 후 `dist` 폴더 기준 최종 QA
+4. 스토어 업로드용 ZIP 생성(`dist` 내부 파일만 압축)
+5. CWS Developer Dashboard에 업로드 후 심사 제출
+
+### 매니페스트 반영 사항
+- 버전: `0.1.1`
+- 최소 크롬 버전: `114`
+- 권한 최소화: `tabs` 제거
+- host permissions 최소화: `https://api.notion.com/*`만 유지
+- content script 매치 범위: `http/https`로 제한
+- 확장 아이콘 등록: `icons/icon-{16,32,48,128}.png`
