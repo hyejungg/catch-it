@@ -72,6 +72,11 @@
   - 드래그 팝오버에 태그 입력칸(쉼표 구분) 추가
   - 드래그 팝오버의 `취소` 버튼 제거(외부 클릭으로 닫기 유지)
   - 선택 영역 하이라이트 컬러를 `rose` 계열로 통일
+- 추가 요청 사항 3차 반영:
+  - Settings > Notion 연동 영역에 Token/Database ID 획득 방법 안내문 추가
+  - README에 Notion 연동 가이드(Integration 생성/DB ID 추출/Connections 연결) 명시
+- 추가 요청 사항 4차 반영:
+  - 드래그 팝오버 태그 입력 중에도 선택 하이라이트 유지 처리
 
 ## 상태(Status)
 - `in-progress`
@@ -184,3 +189,5 @@
   - `Notion DB 바로가기(Open Notion)` 버튼 추가
   - 드래그 팝오버 태그 입력 기능 추가 및 `취소` 버튼 제거
   - 드래그 선택 하이라이트 색상 `rose` 적용
+  - Settings/README에 Notion 키/DB ID 획득 가이드 반영
+  - 태그 입력 중 선택 하이라이트 유지 반영

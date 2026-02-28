@@ -3,7 +3,7 @@
 웹에서 드래그한 텍스트를 빠르게 저장하고, 필요하면 Notion DB로 동기화하는 Chrome Extension(MV3)입니다.
 
 ## 주요 기능
-- 텍스트 드래그 시 팝오버(저장/취소) 표시
+- 텍스트 드래그 시 팝오버(태그 입력 + 저장) 표시, 태그 입력 중 선택 하이라이트 유지
 - 로컬 저장(`chrome.storage.local`) 기반 하이라이트 관리
 - Dashboard 목록/검색/복사/원문 열기/삭제
 - Settings에서 수집/동기화 옵션 관리
@@ -57,6 +57,9 @@ npm run build
 ## Notion 동기화 설정
 1. 확장 UI에서 `설정` 이동
 2. `Integration Token`, `Database ID` 입력
+   - Integration Token: `https://www.notion.so/my-integrations`에서 Internal Integration 생성 후 Secret 복사
+   - Database ID: 대상 DB 페이지 URL의 마지막 32자리 식별자 복사
+   - 대상 DB에 해당 Integration을 `Connections`로 연결
 3. `Auto Sync` ON 후 저장 테스트
 4. Dashboard에서 `Sync Now` 클릭해 동기화 결과 확인
 
