@@ -30,7 +30,7 @@
 - Dashboard UI 진행 반영:
   - 검색창/빈 상태/카드 리스트/액션 버튼(복사/원문열기/삭제) 뼈대 구현
   - mock 데이터 기반 검색/삭제 인터랙션 연결
-  - Notion 상태 배지 렌더링(`pending|synced|failed`) 추가
+  - Notion 상태 배지 렌더링(`ready|sync|failed`) 추가
 - Dashboard 저장소 연동 반영:
   - `chrome.storage.local` 데이터 로딩 및 최신순 정렬 연결
   - 검색 로직을 공통 selector(`searchHighlights`)로 통합
@@ -77,6 +77,14 @@
   - README에 Notion 연동 가이드(Integration 생성/DB ID 추출/Connections 연결) 명시
 - 추가 요청 사항 4차 반영:
   - 드래그 팝오버 태그 입력 중에도 선택 하이라이트 유지 처리
+- 추가 요청 사항 5차 반영:
+  - 태그 입력 중 선택 해제 문제를 오버레이 하이라이트 방식으로 보강
+- 추가 요청 사항 6차 반영:
+  - Sync 상태 표기를 `ready / sync / failed`로 정리
+  - Notion 미설정 상태는 자동 동기화를 시도하지 않고 `ready` 유지
+- 추가 요청 사항 7차 반영:
+  - background에 Notion 동기화 요청/응답/오류 로그 추가
+  - 상태 코드에서 `pending/synced` 레거시 분기 제거(`ready/sync/failed`만 사용)
 
 ## 상태(Status)
 - `in-progress`
@@ -126,7 +134,7 @@
 - 작업:
   - 실제 storage 데이터 로딩
   - 검색 필터링/삭제/복사/원문열기 동작 연결
-  - Notion 상태 배지(`pending|synced|failed`) 렌더링 연결
+  - Notion 상태 배지(`ready|sync|failed`) 렌더링 연결
 - 완료 기준:
   - 로컬 데이터 기준 FR-7~FR-11 충족
 - 상태: `done`
@@ -191,3 +199,7 @@
   - 드래그 선택 하이라이트 색상 `rose` 적용
   - Settings/README에 Notion 키/DB ID 획득 가이드 반영
   - 태그 입력 중 선택 하이라이트 유지 반영
+  - 태그 입력 중 선택 해제 방지를 위한 오버레이 하이라이트 적용
+  - Sync 상태 표기 `ready / sync / failed` 적용
+  - Notion 동기화 디버깅 로그 추가
+  - `pending/synced` 레거시 상태 코드 제거
