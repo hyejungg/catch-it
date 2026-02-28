@@ -334,6 +334,34 @@ onUnmounted(() => {
           @input="updateSettings('notionDbId', ($event.target as HTMLInputElement).value)"
         />
 
+        <div class="mt-3 rounded-md border border-rose-100 bg-rose-50/50 p-2 text-[11px] text-slate-600">
+          <p class="font-medium text-slate-700">Notion 키/DB ID 가져오는 방법</p>
+          <p class="mt-1">
+            1) Integration Token: Notion
+            <a
+              href="https://www.notion.so/my-integrations"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-rose-600 underline"
+            >
+              My integrations
+            </a>
+            에서 Internal Integration 생성 후 Secret 복사
+          </p>
+          <p class="mt-1">
+            2) Database ID: 대상 DB 페이지 URL의 마지막 값(보통 32자리)을 복사하거나
+            <a
+              href="https://www.notion.so/help/add-and-manage-connections-with-the-api"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-rose-600 underline"
+            >
+              연결 권한 가이드
+            </a>
+            를 따라 Integration 연결
+          </p>
+        </div>
+
         <div class="mt-3 flex flex-wrap gap-2">
           <button
             type="button"
