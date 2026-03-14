@@ -99,7 +99,7 @@ npm run build
 5. CWS Developer Dashboard에 업로드 후 심사 제출
 
 ### 매니페스트 반영 사항
-- 버전: `0.1.1`
+- 버전: `1.0.1`
 - 최소 크롬 버전: `114`
 - 권한 최소화: `tabs` 제거
 - host permissions 최소화: `https://api.notion.com/*`만 유지

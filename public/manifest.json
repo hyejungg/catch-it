@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "CatchIt - 웹 텍스트 수집기",
   "description": "웹 텍스트를 드래그해 저장하고 Notion 데이터베이스로 동기화합니다.",
-  "version": "0.1.1",
+  "version": "1.0.1",
   "minimum_chrome_version": "114",
   "permissions": ["storage", "sidePanel"],
   "host_permissions": ["https://api.notion.com/*"],
