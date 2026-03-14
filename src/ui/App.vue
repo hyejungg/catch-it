@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { formatDateByLanguage, getLocaleMessages } from '@/shared/i18n';
 import {
   HIGHLIGHTS_STORAGE_KEY,
   deleteHighlight,
@@ -13,16 +14,32 @@ import type {
   SyncNowResult,
   TestNotionConnectionRequestMessage
 } from '@/shared/types/messages';
-import { DEFAULT_APP_SETTINGS, type AppSettings } from '@/shared/types/settings';
+import {
+  DEFAULT_APP_SETTINGS,
+  detectBrowserLanguage,
+  type AppSettings
+} from '@/shared/types/settings';
 
 const searchQuery = ref('');
 const highlights = ref<Highlight[]>([]);
 const currentView = ref<'dashboard' | 'settings'>('dashboard');
-const settings = ref<AppSettings>({ ...DEFAULT_APP_SETTINGS });
+const settings = ref<AppSettings>({
+  ...DEFAULT_APP_SETTINGS,
+  language: detectBrowserLanguage()
+});
 const syncNowMessage = ref('');
 const isSyncNowRunning = ref(false);
 const notionConnectionMessage = ref('');
 const isTestingNotionConnection = ref(false);
+const messages = computed(() => getLocaleMessages(settings.value.language));
+const currentViewLabel = computed(() =>
+  currentView.value === 'dashboard' ? messages.value.viewDashboard : messages.value.viewSettings
+);
+const viewToggleLabel = computed(() =>
+  currentView.value === 'dashboard'
+    ? messages.value.switchToSettings
+    : messages.value.switchToDashboard
+);
 const onStorageChanged = (
   changes: Record<string, chrome.storage.StorageChange>,
   areaName: string
@@ -57,7 +74,10 @@ async function loadHighlights(): Promise<void> {
 
 async function loadSettings(): Promise<void> {
   if (!canUseChromeStorage()) {
-    settings.value = { ...DEFAULT_APP_SETTINGS };
+    settings.value = {
+      ...DEFAULT_APP_SETTINGS,
+      language: detectBrowserLanguage()
+    };
     return;
   }
 
@@ -82,17 +102,22 @@ const filteredHighlights = computed(() => {
 });
 
 function formatDate(createdAt: number): string {
-  return new Intl.DateTimeFormat('ko-KR', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit'
-  }).format(createdAt);
+  return formatDateByLanguage(createdAt, settings.value.language);
 }
 
 function getNotionStatus(item: Highlight): 'ready' | 'sync' | 'failed' {
   return normalizeNotionSyncStatus(item.notion?.status);
+}
+
+function getNotionStatusLabel(item: Highlight): string {
+  const status = getNotionStatus(item);
+  if (status === 'sync') {
+    return messages.value.notionStatusSync;
+  }
+  if (status === 'failed') {
+    return messages.value.notionStatusFailed;
+  }
+  return messages.value.notionStatusReady;
 }
 
 async function copyHighlight(item: Highlight): Promise<void> {
@@ -134,12 +159,12 @@ function runSyncNow(): void {
       isSyncNowRunning.value = false;
 
       if (chrome.runtime.lastError || !response?.ok || !response.result) {
-        syncNowMessage.value = 'Sync now 실패';
+        syncNowMessage.value = messages.value.syncNowFailed;
         return;
       }
 
       const { total, synced, failed } = response.result;
-      syncNowMessage.value = `동기화 ${synced}/${total} (실패 ${failed})`;
+      syncNowMessage.value = messages.value.syncNowSummary({ total, synced, failed });
     }
   );
 }
@@ -159,18 +184,18 @@ function runTestNotionConnection(): void {
     isTestingNotionConnection.value = false;
 
     if (chrome.runtime.lastError || !response) {
-      notionConnectionMessage.value = '연동 확인 실패';
+      notionConnectionMessage.value = messages.value.notionConnectionFailed;
       return;
     }
 
-    notionConnectionMessage.value = response.message ?? '연동 확인 완료';
+    notionConnectionMessage.value = response.message ?? messages.value.notionConnectionCompleted;
   });
 }
 
 function openNotionDatabase(): void {
   const dbId = settings.value.notionDbId.trim().replaceAll('-', '');
   if (!dbId) {
-    notionConnectionMessage.value = 'Database ID를 먼저 입력하세요.';
+    notionConnectionMessage.value = messages.value.notionDatabaseRequired;
     return;
   }
 
@@ -203,10 +228,8 @@ onUnmounted(() => {
       <div class="flex items-center gap-2">
         <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-rose-100 text-rose-500">C</div>
         <div>
-          <h1 class="text-base font-semibold text-slate-800">CatchIt - 웹 텍스트 수집기</h1>
-          <p class="text-xs text-slate-500">
-            {{ currentView === 'dashboard' ? 'Dashboards' : 'Settings' }}
-          </p>
+          <h1 class="text-base font-semibold text-slate-800">{{ messages.appTitle }}</h1>
+          <p class="text-xs text-slate-500">{{ currentViewLabel }}</p>
         </div>
       </div>
       <button
@@ -219,7 +242,7 @@ onUnmounted(() => {
         class="rounded-md p-1.5 text-xs transition-colors"
         @click="toggleView"
       >
-        {{ currentView === 'dashboard' ? '설정' : '대시보드' }}
+        {{ viewToggleLabel }}
       </button>
     </header>
 
@@ -228,7 +251,7 @@ onUnmounted(() => {
         <input
           v-model="searchQuery"
           type="text"
-          placeholder="저장된 텍스트 검색..."
+          :placeholder="messages.searchPlaceholder"
           class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-transparent focus:ring-2 focus:ring-rose-500"
         />
       </section>
@@ -236,7 +259,7 @@ onUnmounted(() => {
       <section class="rounded-lg bg-white p-3 shadow-sm">
         <div class="mb-3 flex items-center justify-between">
           <p class="text-xs text-slate-500">
-            최근 저장된 항목 <span class="ml-1 text-rose-500">{{ filteredHighlights.length }}</span>
+            {{ messages.recentItemsLabel(filteredHighlights.length) }}
           </p>
           <button
             type="button"
@@ -244,13 +267,13 @@ onUnmounted(() => {
             :disabled="isSyncNowRunning"
             @click="runSyncNow"
           >
-            {{ isSyncNowRunning ? 'Syncing...' : 'Sync Now' }}
+            {{ isSyncNowRunning ? messages.syncingNow : messages.syncNow }}
           </button>
         </div>
         <p v-if="syncNowMessage" class="mb-2 text-[11px] text-slate-500">{{ syncNowMessage }}</p>
 
         <div v-if="filteredHighlights.length === 0" class="py-8 text-center text-sm text-slate-500">
-          검색 결과가 없습니다.
+          {{ messages.noSearchResults }}
         </div>
 
         <ul v-else class="space-y-3">
@@ -285,7 +308,7 @@ onUnmounted(() => {
                       : 'bg-slate-100 text-slate-500'
                 "
               >
-                {{ getNotionStatus(item) }}
+                {{ getNotionStatusLabel(item) }}
               </span>
             </div>
 
@@ -295,21 +318,21 @@ onUnmounted(() => {
                 class="rounded border border-slate-200 px-2 py-1 text-xs text-slate-700 hover:bg-rose-50 hover:text-rose-600"
                 @click="copyHighlight(item)"
               >
-                복사
+                {{ messages.copy }}
               </button>
               <button
                 type="button"
                 class="rounded border border-slate-200 px-2 py-1 text-xs text-slate-700 hover:bg-slate-100"
                 @click="openSource(item.url)"
               >
-                원문 열기
+                {{ messages.openSource }}
               </button>
               <button
                 type="button"
                 class="rounded border border-red-200 px-2 py-1 text-xs text-red-600 hover:bg-red-50"
                 @click="removeHighlight(item.id)"
               >
-                삭제
+                {{ messages.delete }}
               </button>
             </div>
           </li>
@@ -319,40 +342,70 @@ onUnmounted(() => {
 
     <section v-else class="space-y-3">
       <div class="rounded-lg bg-white p-3 shadow-sm">
-        <p class="mb-2 text-sm font-medium text-slate-800">Notion 연동</p>
-        <label class="mb-1 block text-xs text-slate-600">Integration Token</label>
+        <p class="mb-2 text-sm font-medium text-slate-800">{{ messages.settingsLanguage }}</p>
+        <div class="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            class="rounded-md border px-3 py-2 text-sm font-medium transition-colors"
+            :class="
+              settings.language === 'en'
+                ? 'border-rose-500 bg-rose-50 text-rose-600'
+                : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+            "
+            @click="updateSettings('language', 'en')"
+          >
+            {{ messages.languageEnglish }}
+          </button>
+          <button
+            type="button"
+            class="rounded-md border px-3 py-2 text-sm font-medium transition-colors"
+            :class="
+              settings.language === 'ko'
+                ? 'border-rose-500 bg-rose-50 text-rose-600'
+                : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+            "
+            @click="updateSettings('language', 'ko')"
+          >
+            {{ messages.languageKorean }}
+          </button>
+        </div>
+      </div>
+
+      <div class="rounded-lg bg-white p-3 shadow-sm">
+        <p class="mb-2 text-sm font-medium text-slate-800">{{ messages.notionIntegration }}</p>
+        <label class="mb-1 block text-xs text-slate-600">{{ messages.integrationTokenLabel }}</label>
         <input
           :value="settings.notionToken"
           type="password"
-          placeholder="secret_..."
+          :placeholder="messages.integrationTokenPlaceholder"
           class="mb-3 w-full rounded-md border border-slate-200 px-3 py-2 text-sm outline-none transition focus:border-rose-500 focus:ring-1 focus:ring-rose-500"
           @input="updateSettings('notionToken', ($event.target as HTMLInputElement).value)"
         />
 
-        <label class="mb-1 block text-xs text-slate-600">Database ID</label>
+        <label class="mb-1 block text-xs text-slate-600">{{ messages.databaseIdLabel }}</label>
         <input
           :value="settings.notionDbId"
           type="text"
-          placeholder="database id"
+          :placeholder="messages.databaseIdPlaceholder"
           class="w-full rounded-md border border-slate-200 px-3 py-2 text-sm outline-none transition focus:border-rose-500 focus:ring-1 focus:ring-rose-500"
           @input="updateSettings('notionDbId', ($event.target as HTMLInputElement).value)"
         />
 
         <div class="mt-3 rounded-md border border-rose-100 bg-rose-50/50 p-2 text-[11px] text-slate-600">
-          <p class="font-medium text-slate-700">Notion 키/DB ID 가져오는 방법</p>
+          <p class="font-medium text-slate-700">{{ messages.notionGuideTitle }}</p>
           <p class="mt-1">
-            권장: 아래 템플릿을 먼저 복제한 뒤 Notion API 연동
+            {{ messages.notionGuideIntro }}
             <a
               href="https://www.notion.so/hyejung/e8124f69b472835095ca81add015a1fc?v=cb024f69b47283e08bd5889aecb68f50&source=copy_link"
               target="_blank"
               rel="noopener noreferrer"
               class="text-rose-600 underline"
             >
-              템플릿 복제 링크
+              {{ messages.templateCopyLink }}
             </a>
           </p>
           <p class="mt-1">
-            1) Integration Token: Notion
+            {{ messages.notionGuideTokenBeforeLink }}
             <a
               href="https://www.notion.so/my-integrations"
               target="_blank"
@@ -361,19 +414,21 @@ onUnmounted(() => {
             >
               My integrations
             </a>
-            에서 Internal Integration 생성 후 Secret 복사
+            {{ ` ${messages.notionGuideTokenAfterLink}` }}
           </p>
           <p class="mt-1">
-            2) Database ID: 대상 DB 페이지 URL의 마지막 값(보통 32자리)을 복사하거나
+            {{ messages.notionGuideDatabaseId }}
+          </p>
+          <p class="mt-1">
+            {{ messages.notionGuideConnectionsBeforeLink }}
             <a
               href="https://www.notion.so/help/add-and-manage-connections-with-the-api"
               target="_blank"
               rel="noopener noreferrer"
               class="text-rose-600 underline"
             >
-              연결 권한 가이드
+              {{ messages.notionGuideConnectionsLink }}
             </a>
-            를 따라 Integration 연결
           </p>
         </div>
 
@@ -384,14 +439,14 @@ onUnmounted(() => {
             :disabled="isTestingNotionConnection"
             @click="runTestNotionConnection"
           >
-            {{ isTestingNotionConnection ? '확인 중...' : '연동 확인' }}
+            {{ isTestingNotionConnection ? messages.testingConnection : messages.testConnection }}
           </button>
           <button
             type="button"
             class="rounded-md border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100"
             @click="openNotionDatabase"
           >
-            Notion DB 바로가기
+            {{ messages.openNotionDatabase }}
           </button>
         </div>
         <p v-if="notionConnectionMessage" class="mt-2 text-[11px] text-slate-500">
@@ -400,10 +455,10 @@ onUnmounted(() => {
       </div>
 
       <div class="rounded-lg bg-white p-3 shadow-sm">
-        <p class="mb-2 text-sm font-medium text-slate-800">동작 설정</p>
+        <p class="mb-2 text-sm font-medium text-slate-800">{{ messages.behaviorSettings }}</p>
 
         <label class="mb-2 flex items-center justify-between text-sm text-slate-700">
-          <span>자동 동기화 (Auto Sync)</span>
+          <span>{{ messages.autoSync }}</span>
           <button
             type="button"
             :class="settings.autoSync ? 'bg-rose-500' : 'bg-slate-200'"
@@ -418,7 +473,7 @@ onUnmounted(() => {
         </label>
 
         <label class="flex items-center justify-between text-sm text-slate-700">
-          <span>Alt + Drag에서만 팝오버 표시</span>
+          <span>{{ messages.requireAlt }}</span>
           <button
             type="button"
             :class="settings.requireAlt ? 'bg-rose-500' : 'bg-slate-200'"
@@ -439,7 +494,7 @@ onUnmounted(() => {
             rel="noopener noreferrer"
             class="inline-flex items-center rounded-md border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-medium text-rose-700 hover:bg-rose-100"
           >
-            Buy me a coffee
+            {{ messages.supportProject }}
           </a>
         </div>
       </div>

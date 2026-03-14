@@ -5,6 +5,7 @@ import {
   saveHighlights,
   updateHighlight
 } from '@/shared/storage/highlight-storage';
+import { getLocaleMessages, type LocaleMessages } from '@/shared/i18n';
 import { getSettings, SETTINGS_STORAGE_KEY } from '@/shared/storage/settings-storage';
 import { normalizeNotionSyncStatus, type Highlight } from '@/shared/types/highlight';
 import type {
@@ -48,11 +49,11 @@ function isTestNotionConnectionRequestMessage(
   return candidate.type === 'TEST_NOTION_CONNECTION_REQUEST';
 }
 
-function mapNotionError(status: number, fallback: string): string {
-  if (status === 401) return 'Notion 인증 실패(401)';
-  if (status === 403) return 'Notion 권한 오류(403)';
-  if (status === 429) return 'Notion 요청 제한(429)';
-  return fallback || `Notion 동기화 실패(${status})`;
+function mapNotionError(status: number, fallback: string, messages: LocaleMessages): string {
+  if (status === 401) return messages.notionAuthFailed401;
+  if (status === 403) return messages.notionPermission403;
+  if (status === 429) return messages.notionRateLimit429;
+  return fallback || messages.notionSyncFailed(status);
 }
 
 function logSync(message: string, data?: Record<string, unknown>): void {
@@ -101,7 +102,8 @@ function normalizeNotionId(value: string): string {
 
 async function getNotionDatabaseInfo(
   notionToken: string,
-  notionDbId: string
+  notionDbId: string,
+  messages: LocaleMessages
 ): Promise<NotionDatabaseInfo> {
   const response = await fetch(`https://api.notion.com/v1/databases/${normalizeNotionId(notionDbId)}`, {
     method: 'GET',
@@ -122,8 +124,8 @@ async function getNotionDatabaseInfo(
   }
 
   if (!response.ok || !('properties' in parsed)) {
-    const message = 'message' in parsed ? parsed.message : 'Database 조회 실패';
-    throw new Error(mapNotionError(response.status, message ?? 'Database 조회 실패'));
+    const message = 'message' in parsed ? parsed.message : messages.notionDatabaseFetchFailed;
+    throw new Error(mapNotionError(response.status, message ?? messages.notionDatabaseFetchFailed, messages));
   }
 
   return parsed;
@@ -131,7 +133,8 @@ async function getNotionDatabaseInfo(
 
 async function queryNotionDatabasePageIds(
   notionToken: string,
-  notionDbId: string
+  notionDbId: string,
+  messages: LocaleMessages
 ): Promise<Set<string>> {
   const pageIds = new Set<string>();
   let nextCursor: string | null = null;
@@ -163,7 +166,9 @@ async function queryNotionDatabasePageIds(
     }
 
     if (!response.ok) {
-      throw new Error(mapNotionError(response.status, parsed.message ?? 'Notion DB 조회 실패'));
+      throw new Error(
+        mapNotionError(response.status, parsed.message ?? messages.notionDatabaseFetchFailed, messages)
+      );
     }
 
     for (const item of parsed.results ?? []) {
@@ -190,7 +195,8 @@ function findPropertyNameByType(
 async function createNotionPage(
   highlight: Highlight,
   notionToken: string,
-  notionDbId: string
+  notionDbId: string,
+  messages: LocaleMessages
 ): Promise<string> {
   logSync('Notion page create request', {
     highlightId: highlight.id,
@@ -199,7 +205,7 @@ async function createNotionPage(
     tagsCount: highlight.tags.length
   });
 
-  const database = await getNotionDatabaseInfo(notionToken, notionDbId);
+  const database = await getNotionDatabaseInfo(notionToken, notionDbId, messages);
   const titleProperty = findPropertyNameByType(database.properties, 'title');
   const richTextProperty = findPropertyNameByType(database.properties, 'rich_text');
   const urlProperty = findPropertyNameByType(database.properties, 'url');
@@ -216,7 +222,7 @@ async function createNotionPage(
   });
 
   if (!titleProperty) {
-    throw new Error('Notion DB에 title 타입 속성이 없습니다.');
+    throw new Error(messages.notionMissingTitleProperty);
   }
 
   const properties: Record<string, unknown> = {
@@ -279,7 +285,9 @@ async function createNotionPage(
   });
 
   if (!response.ok || !parsed.id) {
-    throw new Error(mapNotionError(response.status, parsed.message ?? 'Notion API 응답 오류'));
+    throw new Error(
+      mapNotionError(response.status, parsed.message ?? messages.notionApiResponseError, messages)
+    );
   }
 
   return parsed.id;
@@ -292,6 +300,7 @@ async function syncHighlightToNotion(highlight: Highlight): Promise<'sync' | 'fa
   });
 
   const settings = await getSettings();
+  const messages = getLocaleMessages(settings.language);
   if (!settings.notionToken || !settings.notionDbId) {
     logSync('Sync skipped: missing Notion settings', {
       highlightId: highlight.id,
@@ -302,7 +311,7 @@ async function syncHighlightToNotion(highlight: Highlight): Promise<'sync' | 'fa
     await updateHighlight(highlight.id, {
       notion: {
         status: 'ready',
-        error: 'Notion 설정 누락: 토큰 또는 Database ID를 확인하세요.'
+        error: messages.missingNotionSettings
       }
     });
     return 'failed';
@@ -313,7 +322,12 @@ async function syncHighlightToNotion(highlight: Highlight): Promise<'sync' | 'fa
   });
 
   try {
-    const pageId = await createNotionPage(highlight, settings.notionToken, settings.notionDbId);
+    const pageId = await createNotionPage(
+      highlight,
+      settings.notionToken,
+      settings.notionDbId,
+      messages
+    );
     await updateHighlight(highlight.id, {
       notion: {
         status: 'sync',
@@ -328,7 +342,8 @@ async function syncHighlightToNotion(highlight: Highlight): Promise<'sync' | 'fa
     });
     return 'sync';
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Notion 동기화 실패';
+    const message =
+      error instanceof Error ? error.message : messages.notionSyncFailed(0);
     logSync('Sync highlight failed', {
       highlightId: highlight.id,
       message
@@ -398,14 +413,15 @@ async function resetAllHighlightsReadyOnDbChange(): Promise<number> {
 
 async function reconcileHighlightSyncStatesByDatabase(
   notionToken: string,
-  notionDbId: string
+  notionDbId: string,
+  messages: LocaleMessages
 ): Promise<{ total: number; sync: number; ready: number }> {
   const highlights = await getHighlights();
   if (highlights.length === 0) {
     return { total: 0, sync: 0, ready: 0 };
   }
 
-  const pageIds = await queryNotionDatabasePageIds(notionToken, notionDbId);
+  const pageIds = await queryNotionDatabasePageIds(notionToken, notionDbId, messages);
   let syncCount = 0;
   let readyCount = 0;
 
@@ -444,10 +460,11 @@ async function reconcileHighlightSyncStatesByDatabase(
 
 async function testNotionConnection(): Promise<{ ok: boolean; message: string }> {
   const settings = await getSettings();
+  const messages = getLocaleMessages(settings.language);
   if (!settings.notionToken || !settings.notionDbId) {
     return {
       ok: false,
-      message: 'Notion 설정 누락: 토큰 또는 Database ID를 확인하세요.'
+      message: messages.missingNotionSettings
     };
   }
 
@@ -481,19 +498,24 @@ async function testNotionConnection(): Promise<{ ok: boolean; message: string }>
 
     return {
       ok: false,
-      message: mapNotionError(response.status, parsed.message ?? '연동 확인 실패')
+      message: mapNotionError(
+        response.status,
+        parsed.message ?? messages.notionConnectionTestFailed,
+        messages
+      )
     };
   }
 
   const reconciled = await reconcileHighlightSyncStatesByDatabase(
     settings.notionToken,
-    settings.notionDbId
+    settings.notionDbId,
+    messages
   );
   logSync('Notion connection reconcile finished', reconciled);
 
   return {
     ok: true,
-    message: `Notion 연동 확인 성공 (sync ${reconciled.sync} / ready ${reconciled.ready})`
+    message: messages.notionConnectionSuccess(reconciled.sync, reconciled.ready)
   };
 }
 
@@ -606,7 +628,9 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         sendResponse(result);
       } catch (error) {
         console.error('[CatchIt] notion connection test failed:', error);
-        sendResponse({ ok: false, message: '연동 확인 중 오류 발생' });
+        const settings = await getSettings();
+        const messages = getLocaleMessages(settings.language);
+        sendResponse({ ok: false, message: messages.notionConnectionRuntimeError });
       }
     })();
 

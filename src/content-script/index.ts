@@ -1,19 +1,14 @@
+import { getLocaleMessages } from '@/shared/i18n';
+import { getSettings } from '@/shared/storage/settings-storage';
+
 const POPOVER_ID = 'catchit-selection-popover';
 const STYLE_ID = 'catchit-selection-style';
 const PERSISTENT_HIGHLIGHT_NAME = 'catchit-selection';
 const MIN_SELECTION_LENGTH = 3;
-const SETTINGS_STORAGE_KEY = 'settings';
 
 let currentSelectionText = '';
 let isAltPressed = false;
 let currentSelectionRange: Range | null = null;
-
-interface AppSettings {
-  requireAlt: boolean;
-  autoSync: boolean;
-  notionToken: string;
-  notionDbId: string;
-}
 
 interface SaveHighlightRequestMessage {
   type: 'HIGHLIGHT_SAVE_REQUEST';
@@ -24,22 +19,6 @@ interface SaveHighlightRequestMessage {
     tags: string[];
     contextBefore?: string;
     contextAfter?: string;
-  };
-}
-
-const DEFAULT_APP_SETTINGS: AppSettings = {
-  requireAlt: false,
-  autoSync: true,
-  notionToken: '',
-  notionDbId: ''
-};
-
-async function getSettings(): Promise<AppSettings> {
-  const data = await chrome.storage.local.get(SETTINGS_STORAGE_KEY);
-  const stored = (data[SETTINGS_STORAGE_KEY] as Partial<AppSettings> | undefined) ?? {};
-  return {
-    ...DEFAULT_APP_SETTINGS,
-    ...stored
   };
 }
 
@@ -116,8 +95,9 @@ function clearPersistentSelectionHighlight(): void {
   cssAny.highlights.delete(PERSISTENT_HIGHLIGHT_NAME);
 }
 
-function createPopover(x: number, y: number): HTMLDivElement {
+function createPopover(x: number, y: number, language: 'en' | 'ko'): HTMLDivElement {
   removePopoverElement();
+  const messages = getLocaleMessages(language);
 
   const popover = document.createElement('div');
   popover.id = POPOVER_ID;
@@ -145,7 +125,7 @@ function createPopover(x: number, y: number): HTMLDivElement {
 
   const tagInput = document.createElement('input');
   tagInput.type = 'text';
-  tagInput.placeholder = '태그(쉼표 구분)';
+  tagInput.placeholder = messages.contentTagPlaceholder;
   tagInput.style.width = '140px';
   tagInput.style.border = '1px solid #cbd5e1';
   tagInput.style.borderRadius = '8px';
@@ -156,7 +136,7 @@ function createPopover(x: number, y: number): HTMLDivElement {
 
   const saveButton = document.createElement('button');
   saveButton.type = 'button';
-  saveButton.textContent = '저장';
+  saveButton.textContent = messages.contentSave;
   saveButton.style.border = 'none';
   saveButton.style.background = '#f43f5e';
   saveButton.style.color = '#ffffff';
@@ -248,7 +228,7 @@ async function handleMouseUp(event: MouseEvent): Promise<void> {
     currentSelectionText = text;
     setPersistentSelectionHighlight(range);
     clearSelection();
-    createPopover(rect.left + rect.width / 2, rect.top);
+    createPopover(rect.left + rect.width / 2, rect.top, settings.language);
   } catch (error) {
     console.debug('[CatchIt] handleMouseUp failed:', error);
     removePopover();
