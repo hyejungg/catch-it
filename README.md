@@ -3,10 +3,16 @@
 웹에서 드래그한 텍스트를 빠르게 저장하고, 필요하면 Notion DB로 동기화하는 Chrome Extension(MV3)입니다.
 
 ## 주요 기능
+- 브라우저 언어 기반 초기 언어 설정
+  - `ko` 계열이면 한국어로 시작
+  - `en` 계열 또는 지원하지 않는 언어면 영어로 시작
+  - 사용자가 한 번 언어를 바꾸면 해당 브라우저에서는 계속 그 언어 유지
+- Settings에서 영어/한국어 언어 전환 지원
 - 텍스트 드래그 시 팝오버(태그 입력 + 저장) 표시, 태그 입력 중 오버레이 하이라이트 유지
 - 로컬 저장(`chrome.storage.local`) 기반 하이라이트 관리
 - Dashboard 목록/검색/복사/원문 열기/삭제
 - Settings에서 수집/동기화 옵션 관리
+  - Language(`English`, `Korean`)
   - `Alt + Drag` 수집 옵션
   - Notion Token / Database ID 저장
   - Auto Sync 토글
@@ -53,19 +59,20 @@ npm run build
 
 ### 3) 기본 동작 확인
 1. 일반 웹페이지에서 텍스트 드래그
-2. 팝오버에서 `저장`
+2. 팝오버에서 `Save` 또는 `저장`
 3. 확장 아이콘을 눌러 Dashboard에서 항목 생성 확인
+4. Settings에서 언어를 `English` 또는 `한국어`로 바꿔 UI가 즉시 전환되는지 확인
 
 ## Notion 동기화 설정
-1. 확장 UI에서 `설정` 이동
+1. 확장 UI에서 `Settings` 또는 `설정` 이동
 2. `Integration Token`, `Database ID` 입력
    - 권장 템플릿: `https://www.notion.so/hyejung/e8124f69b472835095ca81add015a1fc?v=cb024f69b47283e08bd5889aecb68f50&source=copy_link` 복제 후 연동
    - Integration Token: `https://www.notion.so/my-integrations`에서 Internal Integration 생성 후 Secret 복사
    - Database ID: 대상 DB 페이지 URL의 마지막 32자리 식별자 복사
    - 대상 DB에 해당 Integration을 `Connections`로 연결
 3. `Auto Sync` ON 후 저장 테스트
-4. `연동 확인` 클릭 후 상태 메시지(`sync n / ready n`) 확인
-5. Dashboard에서 `Sync Now` 클릭해 동기화 결과 확인
+4. `Test Connection` 또는 `연동 확인` 클릭 후 상태 메시지(`sync n / ready n`) 확인
+5. Dashboard에서 `Sync Now` 또는 `지금 동기화` 클릭해 동기화 결과 확인
 
 ## QA
 - 수동 QA 항목은 아래 문서 참고:
@@ -81,6 +88,7 @@ npm run build
 
 ## 현재 상태
 - MVP 구현 단계 완료
+- 다국어 지원(`en`, `ko`) 적용 완료
 - 다음 단계: QA 체크리스트 실행 후 이슈 보완
 
 ## 출시 체크리스트 (Chrome Web Store)
